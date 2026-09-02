@@ -49,3 +49,22 @@ mkdir retroloop
 cd retroloop
 
 ```
+
+Copy the plan.md file in \_docs.
+
+Try to commit as often as possible, after every meaningful decision. With those commits, we can review what the agent changed. If something isn’t working well, we can easily return to the last good state.
+
+## Choose the stack and architecture
+
+During the brainstorming session, we didn’t choose the tech stack.
+
+Ask the coding agent to come up with several options:
+
+```
+Read _docs/plan.md. Propose multiple options for the tech stack and
+explain each option.
+
+Don't write code yet.
+```
+
+It proposes multiple options and explains the tradeoffs of each one. Select one and if not, ask to create architecture.md
