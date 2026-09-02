@@ -187,3 +187,14 @@ You can use a prompt like this:
 Based on the corrections I made, find the relevant documents and update them.
 Commit the current work before changing the documents.
 ```
+
+# Bootstrap the first task
+
+Bootstrap the first task
+With AGENTS.md and process.md in place, we can start a new session and ask the agent to implement the first task:
+
+```
+Implement task 1.
+```
+
+For this project, the agent creates the Django app, dependencies, and a passing test.
