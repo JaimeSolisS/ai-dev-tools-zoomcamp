@@ -105,3 +105,40 @@ Move each task from _docs/tasks.md into a GitHub issue.
 For that to work, we need the gh CLI tool authenticated and the repo connected to the GitHub remote.
 
 From this point on, GitHub issues are the canonical tasks and the only active backlog. We no longer need \_docs/tasks.md.
+
+# Context engineering
+
+The repository has a backlog now. When we start a new session, however, the agent doesn’t know which task we mean. It must figure that out every time.
+
+These details go in AGENTS.md, which coding agents like Codex or OpenCode read when they start a new session.
+
+Claude Code reads CLAUDE.md, while I use multiple coding assistants and want my workflow to be tool-agnostic.
+
+That’s why I also create CLAUDE.md with a single line:
+
+```
+@AGENTS.md
+```
+
+It tells Claude to read AGENTS.md.
+
+This is called context engineering. With prompt engineering, we control one message in one session. With context engineering, we control what agents know when they start a new session and what information they can find while they work. We include useful facts and working rules they would otherwise have to rediscover.
+
+# AGENTS.md
+
+To make this context available in every new session, create AGENTS.md:
+
+```
+Create agents.md with content similar to this
+Commands
+
+- `uv sync` - install dependencies
+- `uv run pytest` - the whole suite
+- `uv run pytest tests/test_home.py` - one test file
+
+Rules
+
+- Dependencies are added in `pyproject.toml`. Do not add one without
+  asking
+
+```
