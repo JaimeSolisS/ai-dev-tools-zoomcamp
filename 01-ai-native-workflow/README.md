@@ -96,3 +96,12 @@ It created these tasks.md.
 Review the tasks and ask the agent to merge tasks that are too small or split tasks that don’t fit into one session. We want to create an MVP - the first version of the app. If something is out of scope for your vision of the MVP, remove it.
 
 When we’re happy with the tasks, move them to a task tracker. I use GitHub issues for that.
+
+```
+Create a public GitHub repo for this project.
+Move each task from _docs/tasks.md into a GitHub issue.
+```
+
+For that to work, we need the gh CLI tool authenticated and the repo connected to the GitHub remote.
+
+From this point on, GitHub issues are the canonical tasks and the only active backlog. We no longer need \_docs/tasks.md.
