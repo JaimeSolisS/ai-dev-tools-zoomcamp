@@ -142,3 +142,48 @@ Rules
   asking
 
 ```
+
+# The other documents
+
+In addition to AGENTS.md, I usually have a few other Markdown documents in my projects.
+
+The main one is process.md, which I use to describe how work is organized. It could live inside AGENTS.md, but I keep it separate.
+
+Create \_docs/process.md:
+
+```
+- Tasks are GitHub issues, one at a time
+- Read the acceptance criteria before starting and before closing
+- Commit regularly
+```
+
+As I continue working on a project, I may create other documents, such as:
+
+testing-guidelines.md for testing
+
+design-system.md so the UI doesn’t drift every session
+
+api.md, which describes what the API should look like
+
+I keep them together in \_docs/ and link them from AGENTS.md:
+
+```
+Documents
+
+- `_docs/process.md` - how work is organized
+- Before writing tests, read `_docs/testing-guidelines.md`
+- For anything touching the UI, read `_docs/design-system.md`
+```
+
+The agent reads AGENTS.md at the start of every session, so it knows where to find the process, testing, and design rules if it needs them.
+
+This way, it will load the design system only for a UI task and the testing guidelines only for a testing task. By loading each document only when it’s relevant, we keep AGENTS.md short while we continue adding written context to the project.
+
+These documents are living documents, and I update them often. If I need to correct an agent during a coding session, I can ask it to modify the documents. Next time, it knows what I need, so I don’t have to correct it again.
+
+You can use a prompt like this:
+
+```
+Based on the corrections I made, find the relevant documents and update them.
+Commit the current work before changing the documents.
+```

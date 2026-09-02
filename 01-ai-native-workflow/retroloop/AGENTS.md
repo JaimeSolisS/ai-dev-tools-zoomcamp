@@ -14,6 +14,12 @@ follow. `_docs/plan.md` is the scope, `_docs/architecture.md` the design,
 - `uv run ruff check . && uv run ruff format --check .` - lint and format check,
   run it before committing
 
+## Documents
+
+- `_docs/process.md` - how work is organized
+- Before writing tests, read `_docs/testing-guidelines.md`
+- For anything touching the UI, read `_docs/design-system.md`
+
 ## Rules
 
 - All authorization lives in `projects/permissions.py` as predicate functions
