@@ -68,3 +68,31 @@ Don't write code yet.
 ```
 
 It proposes multiple options and explains the tradeoffs of each one. Select one and if not, ask to create architecture.md
+
+## Turn the decisions into a backlog
+
+Now that we’ve settled on the tech stack, we can ask the agent to decompose the specifications into a backlog with tasks:
+
+```
+Create a backlog with tasks in _docs/tasks.md.
+
+Each task should be small enough to finish in one session, and
+independent enough that I could hand it to someone who has not read
+the others.
+
+Use this template for each task:
+
+## <number>. <title>
+Goal: <one line>
+Description: <two or three sentences on what the task involves>
+
+The first task should be setting up an empty project with a passing test.
+
+Don't write code yet.
+```
+
+It created these tasks.md.
+
+Review the tasks and ask the agent to merge tasks that are too small or split tasks that don’t fit into one session. We want to create an MVP - the first version of the app. If something is out of scope for your vision of the MVP, remove it.
+
+When we’re happy with the tasks, move them to a task tracker. I use GitHub issues for that.
