@@ -198,3 +198,142 @@ Implement task 1.
 ```
 
 For this project, the agent creates the Django app, dependencies, and a passing test.
+
+# Grooming: the product manager agent
+
+We have a backlog of tasks, but they’re not precise enough.
+
+We discussed this problem already: if the task isn’t specific, the agent will fill in the gaps during implementation. We risk spending time and tokens on something we don’t need.
+
+Instead, we should ask the AI assistant to fill these gaps before writing any code. Then we review the specification, correct it, and give it to the coding agent to implement.
+
+This process is called “grooming”: we groom a task to make it more specific. Then an engineer can implement it without asking a single question.
+
+In real teams, product managers usually do this work. Here we’ll create a team of agents, and the first role we’ll define will be a PM.
+
+Create a document
+
+```
+_docs/team/
+  pm.md
+```
+
+Inside, write the description for the product manager agent:
+
+```
+You’re a Product Manager
+
+You groom a task before anyone implements it.
+
+- Read the issue as written
+- Rewrite it using the template in `_docs/task-template.md`
+- Make the acceptance criteria checkable - someone should be able to
+  point at the screen and say yes or no
+- Think about the edge cases the person who filed it did not consider
+- Do not write any code
+
+Definition of done:
+
+- The issue has all four sections filled in
+- Every acceptance criterion can be checked by looking at the result
+- Everything moved out of scope links to a follow-up issue
+- An engineer who has never spoken to you could implement it from the
+  issue and the documents it links
+
+If something does not belong in this task, do not silently drop it.
+File a follow-up issue and list it under out of scope with a link to
+that issue, so it is clear what was moved and where it went.
+```
+
+A groomed task has four sections:
+
+Goal - one or two sentences on what should be true afterwards.
+
+Acceptance criteria - checkable statements.
+
+Out of scope - what this change must not do.
+
+Constraints - files it should stay inside, libraries it should or shouldn’t use, prior decisions it has to follow.
+
+We save the issue template as \_docs/task-template.md:
+
+```
+## Goal
+
+One or two sentences on what should be true when this is done.
+
+## Acceptance criteria
+
+- [ ] A statement you can check by looking at the result
+- [ ] One line per case, including the awkward ones
+
+## Out of scope
+
+- Something that does not belong in this task, moved to #TASK-NUMBER
+
+## Constraints
+
+- Files this should stay inside
+- Libraries to use
+- Guidelines to follow
+```
+
+We’ll need to groom every task, so we’ll add it to process.md:
+
+```
+Roles
+
+- PM - grooms a task before anyone implements it, follows _docs/team/pm.md
+```
+
+We can now start a new session and ask the agent to groom an issue:
+
+```
+Groom issue #4
+```
+
+After it finishes, review the result.
+
+We can catch a misunderstanding most cheaply while grooming: the issue is a paragraph, and correcting it costs one sentence. If we catch the same misunderstanding after implementation, we need a rewrite.
+
+# Loop engineering
+
+After grooming one issue, we can ask the agent to groom the rest:
+
+```
+Groom all GitHub issues. Process one issue at a time.
+```
+
+This will mostly work, but the agent may eventually stop. It might say, “I’ve groomed issues 1, 2, and 3. Do you want me to proceed?”
+
+The answer is almost always “yes”, but the agent has stopped and is waiting for us to say that explicitly. In many cases, I want the agent to continue automatically.
+
+To do it, we can give the agent a goal:
+
+```
+/goal groom all issues
+```
+
+The /goal command will prompt the agent to continue, so we won’t need to do it manually. Instead, we delegate that responsibility to the harness: the system around an agent, such as Claude Code or Codex. When the agent stops, the harness checks whether the condition has been met. If it hasn’t, the harness resumes the work.
+
+This approach is called “loop engineering”. It’s similar to a while loop: we repeat the work until a condition is met.
+
+With loop engineering, the system runs a coding agent repeatedly instead of having us drive it manually, prompt by prompt.
+
+There are multiple “engineering” levels when we work with coding agents:
+
+Prompt engineering - what we say when we interact with the agent
+
+Context engineering - what the agent knows before it starts and what it can get during the session
+
+Loop engineering - when it stops working
+
+Graph engineering - who does what when there’s more than one agent (we’ll discuss it later)
+
+A loop needs a stop condition: a checkable statement that tells the harness when to stop.
+
+For /goal groom all issues, the stop condition is “all issues are groomed”. After each agent run, the harness checks whether that condition is true and resumes the agent if it isn’t.
+
+The stop condition must be something the model can evaluate. “All issues are groomed”, “all tests pass”, and “no file is over 200 lines” are checkable, but “make the code better” isn’t. If the stop condition isn’t checkable, the agent can stop too early or run forever.
+
+Claude Code and Codex provide the /goal loop by default. If your harness doesn’t provide it, you can implement it yourself using stop hooks.
