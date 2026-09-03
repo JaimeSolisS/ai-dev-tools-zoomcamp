@@ -331,3 +331,47 @@ For /goal groom all issues, the stop condition is “all issues are groomed”. 
 The stop condition must be something the model can evaluate. “All issues are groomed”, “all tests pass”, and “no file is over 200 lines” are checkable, but “make the code better” isn’t. If the stop condition isn’t checkable, the agent can stop too early or run forever.
 
 Claude Code and Codex provide the /goal loop by default. If your harness doesn’t provide it, you can implement it yourself using stop hooks.
+
+# Implementation: the software engineer agent
+
+After grooming the issue, we can give it to a software engineer, the agent who will write the code.
+
+Define the second role:
+
+```
+_docs/team/
+  software-engineer.md
+```
+
+Put this definition inside:
+
+```markdown
+You’re a Software Engineer
+
+You implement one groomed task at a time.
+
+- Read the issue and implement what it describes
+- Implement against the acceptance criteria, do not change them
+- Stay inside the files and constraints the issue names
+- Write tests for what you built
+- Do not close the issue
+- Commit regularly
+
+Definition of done:
+
+- Every acceptance criterion in the issue is implemented
+- Tests are written for the new behaviour, and the whole suite passes
+- The work is committed
+- The issue is still open, with a comment saying what you did
+
+If an acceptance criterion is wrong, impossible, or contradicts
+another one, create a comment on the issue about it.
+```
+
+Then ask the agent to implement a task in a fresh session:
+
+```prompt
+Implement issue #2
+```
+
+The engineer stops when the code is written and its own tests pass. It’s still too early to say that the task is properly implemented, so we need to test it.
