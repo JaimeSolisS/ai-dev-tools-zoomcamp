@@ -16,7 +16,7 @@ Instead of giving a prompt directly to the coding assistant, start in a chat app
 
 Begin with the same vague idea:
 
-```
+```prompt
 I want to build a tool for weekly feedback for projects.
 
 Help me set the scope for this project precisely. I want to brainstorm with you
@@ -34,7 +34,7 @@ This way, we can use AI as our brainstorming partner and find out precisely what
 
 When we finish, I ask for a file with all the specifications:
 
-```
+```prompt
 Save everything to a markdown file that I can download.
 ```
 
@@ -44,7 +44,7 @@ Download the file and save it as plan.md.
 
 Create a project from this specification:
 
-```
+```bash
 mkdir retroloop
 cd retroloop
 
@@ -60,7 +60,7 @@ During the brainstorming session, we didn’t choose the tech stack.
 
 Ask the coding agent to come up with several options:
 
-```
+```promt
 Read _docs/plan.md. Propose multiple options for the tech stack and
 explain each option.
 
@@ -73,7 +73,7 @@ It proposes multiple options and explains the tradeoffs of each one. Select one 
 
 Now that we’ve settled on the tech stack, we can ask the agent to decompose the specifications into a backlog with tasks:
 
-```
+```prompt
 Create a backlog with tasks in _docs/tasks.md.
 
 Each task should be small enough to finish in one session, and
@@ -97,7 +97,7 @@ Review the tasks and ask the agent to merge tasks that are too small or split ta
 
 When we’re happy with the tasks, move them to a task tracker. I use GitHub issues for that.
 
-```
+```prompt
 Create a public GitHub repo for this project.
 Move each task from _docs/tasks.md into a GitHub issue.
 ```
@@ -116,7 +116,7 @@ Claude Code reads CLAUDE.md, while I use multiple coding assistants and want my 
 
 That’s why I also create CLAUDE.md with a single line:
 
-```
+```markdown
 @AGENTS.md
 ```
 
@@ -128,7 +128,7 @@ This is called context engineering. With prompt engineering, we control one mess
 
 To make this context available in every new session, create AGENTS.md:
 
-```
+```prompt
 Create agents.md with content similar to this
 Commands
 
@@ -151,7 +151,7 @@ The main one is process.md, which I use to describe how work is organized. It co
 
 Create \_docs/process.md:
 
-```
+```markdown
 - Tasks are GitHub issues, one at a time
 - Read the acceptance criteria before starting and before closing
 - Commit regularly
@@ -159,15 +159,15 @@ Create \_docs/process.md:
 
 As I continue working on a project, I may create other documents, such as:
 
-testing-guidelines.md for testing
+- testing-guidelines.md for testing
 
-design-system.md so the UI doesn’t drift every session
+- design-system.md so the UI doesn’t drift every session
 
-api.md, which describes what the API should look like
+- api.md, which describes what the API should look like
 
 I keep them together in \_docs/ and link them from AGENTS.md:
 
-```
+```markdown
 Documents
 
 - `_docs/process.md` - how work is organized
@@ -183,7 +183,7 @@ These documents are living documents, and I update them often. If I need to corr
 
 You can use a prompt like this:
 
-```
+```prompt
 Based on the corrections I made, find the relevant documents and update them.
 Commit the current work before changing the documents.
 ```
@@ -193,7 +193,7 @@ Commit the current work before changing the documents.
 Bootstrap the first task
 With AGENTS.md and process.md in place, we can start a new session and ask the agent to implement the first task:
 
-```
+```prompt
 Implement task 1.
 ```
 
@@ -220,7 +220,7 @@ _docs/team/
 
 Inside, write the description for the product manager agent:
 
-```
+```markdown
 You’re a Product Manager
 
 You groom a task before anyone implements it.
@@ -247,17 +247,14 @@ that issue, so it is clear what was moved and where it went.
 
 A groomed task has four sections:
 
-Goal - one or two sentences on what should be true afterwards.
-
-Acceptance criteria - checkable statements.
-
-Out of scope - what this change must not do.
-
-Constraints - files it should stay inside, libraries it should or shouldn’t use, prior decisions it has to follow.
+1. Goal - one or two sentences on what should be true afterwards.
+2. Acceptance criteria - checkable statements.
+3. Out of scope - what this change must not do.
+4. Constraints - files it should stay inside, libraries it should or shouldn’t use, prior decisions it has to follow.
 
 We save the issue template as \_docs/task-template.md:
 
-```
+```markdown
 ## Goal
 
 One or two sentences on what should be true when this is done.
@@ -280,15 +277,15 @@ One or two sentences on what should be true when this is done.
 
 We’ll need to groom every task, so we’ll add it to process.md:
 
-```
+```markdown
 Roles
 
-- PM - grooms a task before anyone implements it, follows _docs/team/pm.md
+- PM - grooms a task before anyone implements it, follows \_docs/team/pm.md
 ```
 
 We can now start a new session and ask the agent to groom an issue:
 
-```
+```prompt
 Groom issue #4
 ```
 
@@ -300,7 +297,7 @@ We can catch a misunderstanding most cheaply while grooming: the issue is a para
 
 After grooming one issue, we can ask the agent to groom the rest:
 
-```
+```prompt
 Groom all GitHub issues. Process one issue at a time.
 ```
 
@@ -310,7 +307,7 @@ The answer is almost always “yes”, but the agent has stopped and is waiting 
 
 To do it, we can give the agent a goal:
 
-```
+```prompt
 /goal groom all issues
 ```
 
@@ -322,13 +319,10 @@ With loop engineering, the system runs a coding agent repeatedly instead of havi
 
 There are multiple “engineering” levels when we work with coding agents:
 
-Prompt engineering - what we say when we interact with the agent
-
-Context engineering - what the agent knows before it starts and what it can get during the session
-
-Loop engineering - when it stops working
-
-Graph engineering - who does what when there’s more than one agent (we’ll discuss it later)
+- Prompt engineering - what we say when we interact with the agent
+- Context engineering - what the agent knows before it starts and what it can get during the session
+- Loop engineering - when it stops working
+- Graph engineering - who does what when there’s more than one agent (we’ll discuss it later)
 
 A loop needs a stop condition: a checkable statement that tells the harness when to stop.
 
