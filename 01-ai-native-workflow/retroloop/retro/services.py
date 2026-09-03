@@ -18,10 +18,13 @@ itself. `_on_reveal` (DRAFT -> REVEAL) is issue #10's target; `_on_cluster`
 (REVEAL -> CLUSTER) is issue #22's.
 """
 
+import random
+
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.utils import timezone
 
+from cycles.models import Card, CycleParticipation
 from projects.permissions import can_advance_stage
 from retro.models import Retrospective
 
@@ -65,19 +68,98 @@ def bump_version(retrospective, *, extra_update_fields=None):
 
 
 def _on_reveal(retrospective):
-    """DRAFT -> REVEAL hook. Documented no-op -- issue #10 replaces this
-    function's body, not its signature or how it's wired below.
-
-    #10 will: null out `Card.author` for anonymous cards and shuffle
-    `Card.position` (architecture.md's "anonymity design" section), via
-    `retrospective.cycle.cards`. #22 will additionally enqueue the
-    auto-clustering background job here.
+    """DRAFT -> REVEAL hook. See issue #10 and `_docs/architecture.md`'s
+    "anonymity design" section.
 
     Called with `retrospective` already locked (`select_for_update`) and
     still at stage DRAFT, inside the same `transaction.atomic()` block
-    `advance_stage` runs in -- whatever this function does will commit
-    atomically with the stage write, or the whole transition rolls back.
+    `advance_stage` runs in -- everything below commits atomically with
+    the stage write, or the whole transition rolls back. No second
+    transaction is opened here.
+
+    Order of operations matters and is fixed:
+
+    1. Compute `CycleParticipation` rows from `Card.author` *before*
+       touching it -- one row per distinct non-null author, with
+       `card_count` = that author's total card count across the whole
+       cycle (anonymous and non-anonymous alike -- participation means
+       "did they contribute", not "did they contribute non-anonymously").
+       Get this step's ordering wrong and the data is gone, not merely
+       delayed: after step 2 there is no way to attribute an anonymous
+       card back to its author.
+    2. Only then null `Card.author` for cards with `is_anonymous=True`.
+       Non-anonymous cards are never touched here -- their `author_id`
+       is bit-for-bit unchanged.
+    3. Shuffle `Card.position` for *all* cards (anonymous and
+       non-anonymous alike), independently within each `(cycle,
+       category)` group -- the same scope `position` is already
+       assigned in at creation (see `Card.position`'s docstring).
+       Shuffling only the anonymous cards was considered and rejected:
+       a card whose position looks "shuffled" relative to its
+       creation-order siblings would leak `is_anonymous` even after
+       `author` is nulled -- a weak signal, but shuffling everyone costs
+       nothing and removes it entirely.
+
+    Idempotency: `advance_stage`'s forward-only guard makes a second
+    call to this function unreachable in normal operation, but as
+    defense-in-depth this function is written to be a safe no-op if
+    invoked again directly. Non-anonymous cards keep their `author`
+    forever (step 2 only ever touches anonymous ones), so a second call
+    would still find those authors and try to recompute their
+    `CycleParticipation` row -- step 1 therefore uses `get_or_create`
+    keyed on `(cycle, user)` rather than `create`, so an existing row
+    from the first call is left untouched (`card_count` is not
+    recomputed or incremented) instead of raising. `unique_together` is
+    the DB-level backstop for this same guarantee under a race. Step 3
+    re-shuffling positions on a hypothetical second call is harmless --
+    position order carries no meaning beyond "some shuffled order" once
+    reveal has already happened once.
+
+    No audit log, soft-delete, shadow column, admin action, or
+    management command is added anywhere that would let anyone
+    reconstruct which anonymous card belonged to which user after this
+    runs -- per AGENTS.md, anonymous authorship is destroyed here, not
+    hidden, and that is irreversible by design.
     """
+    cards = list(retrospective.cycle.cards.all())
+
+    # Step 1: compute participation from `author` before nulling anything.
+    now = timezone.now()
+    card_counts = {}
+    for card in cards:
+        if card.author_id is not None:
+            card_counts[card.author_id] = card_counts.get(card.author_id, 0) + 1
+
+    for user_id, count in card_counts.items():
+        CycleParticipation.objects.get_or_create(
+            cycle=retrospective.cycle,
+            user_id=user_id,
+            defaults={"card_count": count, "submitted_at": now},
+        )
+
+    # Step 2: null `author` for anonymous cards only.
+    anonymous_cards = [card for card in cards if card.is_anonymous]
+    for card in anonymous_cards:
+        card.author = None
+    if anonymous_cards:
+        Card.objects.bulk_update(anonymous_cards, ["author"])
+
+    # Step 3: shuffle `position` for every card, independently within
+    # each (cycle, category) group.
+    by_category = {}
+    for card in cards:
+        by_category.setdefault(card.category, []).append(card)
+
+    shuffled_cards = []
+    for group in by_category.values():
+        positions = [card.position for card in group]
+        random.shuffle(positions)
+        for card, new_position in zip(group, positions):
+            card.position = new_position
+        shuffled_cards.extend(group)
+
+    if shuffled_cards:
+        Card.objects.bulk_update(shuffled_cards, ["position"])
 
 
 def _on_cluster(retrospective):

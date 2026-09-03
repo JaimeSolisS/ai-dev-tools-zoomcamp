@@ -4,18 +4,19 @@
 issue's acceptance criteria for what each test maps to.
 """
 
+import random
 from datetime import date
 
 import pytest
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.exceptions import PermissionDenied
 
-from cycles.models import FeedbackCycle
+from cycles.models import Card, CycleParticipation, FeedbackCycle
 from projects.models import Membership, Project
 from projects.permissions import can_advance_stage
 from retro import services
 from retro.models import Retrospective
-from retro.services import TRANSITIONS, advance_stage
+from retro.services import TRANSITIONS, _on_reveal, advance_stage
 
 VALID_PASSWORD = "correct-horse-battery-42"
 WEEK_START = date(2026, 9, 7)
@@ -349,3 +350,164 @@ def test_advance_stage_locks_row_with_select_for_update(retrospective, facilitat
     advance_stage(facilitator, retrospective, Stage.REVEAL)
 
     assert calls.get("called") is True
+
+
+# -- _on_reveal (issue #10) -------------------------------------------------
+
+
+@pytest.fixture
+def member(project):
+    user = make_user("member")
+    Membership.objects.create(project=project, user=user, role=Membership.Role.MEMBER)
+    return user
+
+
+def make_card(
+    cycle, author, category=Card.Category.START, position=0, is_anonymous=False, text="c"
+):
+    return Card.objects.create(
+        cycle=cycle,
+        category=category,
+        text=text,
+        author=author,
+        is_anonymous=is_anonymous,
+        position=position,
+    )
+
+
+@pytest.mark.django_db
+def test_reveal_nulls_author_of_anonymous_card(retrospective, closed_cycle, facilitator):
+    card = make_card(closed_cycle, facilitator, is_anonymous=True)
+
+    advance_stage(facilitator, retrospective, Stage.REVEAL)
+
+    card.refresh_from_db()
+    assert card.author is None
+
+
+@pytest.mark.django_db
+def test_reveal_leaves_non_anonymous_card_author_unchanged_same_user(
+    retrospective, closed_cycle, facilitator
+):
+    """Both cards come from the SAME user, to catch a "null everyone"
+    bug that a test using two different users for the two cards would
+    miss."""
+    attributed = make_card(closed_cycle, facilitator, is_anonymous=False, text="attributed")
+    anonymous = make_card(closed_cycle, facilitator, is_anonymous=True, text="anonymous")
+
+    advance_stage(facilitator, retrospective, Stage.REVEAL)
+
+    attributed.refresh_from_db()
+    anonymous.refresh_from_db()
+    assert attributed.author_id == facilitator.id
+    assert anonymous.author_id is None
+
+
+@pytest.mark.django_db
+def test_reveal_creates_cycle_participation_counting_all_cards_per_author(
+    retrospective, closed_cycle, facilitator, member
+):
+    # facilitator: 2 anonymous + 1 non-anonymous = 3 cards
+    make_card(closed_cycle, facilitator, is_anonymous=True, text="f1")
+    make_card(closed_cycle, facilitator, is_anonymous=True, text="f2")
+    make_card(closed_cycle, facilitator, is_anonymous=False, text="f3")
+    # member: 1 non-anonymous card
+    make_card(closed_cycle, member, is_anonymous=False, text="m1")
+
+    advance_stage(facilitator, retrospective, Stage.REVEAL)
+
+    facilitator_participation = CycleParticipation.objects.get(
+        cycle=closed_cycle, user=facilitator
+    )
+    member_participation = CycleParticipation.objects.get(cycle=closed_cycle, user=member)
+    assert facilitator_participation.card_count == 3
+    assert member_participation.card_count == 1
+    assert facilitator_participation.submitted_at is not None
+
+
+@pytest.mark.django_db
+def test_reveal_shuffle_is_a_genuine_seeded_permutation(retrospective, closed_cycle, facilitator):
+    cards = [make_card(closed_cycle, facilitator, position=i, text=f"card-{i}") for i in range(5)]
+    original_positions = [c.position for c in cards]
+
+    seed = 20260902
+    random.seed(seed)
+    advance_stage(facilitator, retrospective, Stage.REVEAL)
+
+    expected_rng = random.Random(seed)
+    expected_positions = list(original_positions)
+    expected_rng.shuffle(expected_positions)
+
+    actual_positions = [
+        Card.objects.get(pk=c.pk).position for c in sorted(cards, key=lambda c: c.pk)
+    ]
+    assert actual_positions == expected_positions
+    # Not just "a permutation" in the abstract -- confirm it's genuinely
+    # not the identity map for this fixture/seed.
+    assert actual_positions != original_positions
+    assert sorted(actual_positions) == sorted(original_positions)
+
+
+@pytest.mark.django_db
+def test_on_reveal_called_twice_directly_does_not_raise_or_double_count(
+    retrospective, closed_cycle, facilitator
+):
+    """Defense-in-depth per the issue: `advance_stage`'s forward-only
+    guard makes a second real call unreachable, but `_on_reveal` itself
+    must tolerate being invoked again directly without raising
+    `IntegrityError` and without double-counting participation.
+    """
+    make_card(closed_cycle, facilitator, is_anonymous=True, text="a")
+    make_card(closed_cycle, facilitator, is_anonymous=False, text="b")
+
+    _on_reveal(retrospective)
+    first_count = CycleParticipation.objects.get(cycle=closed_cycle, user=facilitator).card_count
+    assert first_count == 2
+
+    # Second direct call: by now the anonymous card's author is already
+    # NULL, so no new participation is attributed and no duplicate row
+    # is attempted.
+    _on_reveal(retrospective)
+
+    assert CycleParticipation.objects.filter(cycle=closed_cycle, user=facilitator).count() == 1
+    second = CycleParticipation.objects.get(cycle=closed_cycle, user=facilitator)
+    assert second.card_count == first_count
+
+
+@pytest.mark.django_db
+def test_reveal_full_integration_via_advance_stage(project, facilitator, member):
+    cycle = FeedbackCycle.objects.create(
+        project=project, week_start=WEEK_START, facilitator=facilitator
+    )
+    fac_attributed = make_card(cycle, facilitator, is_anonymous=False, position=0, text="fa")
+    fac_anonymous = make_card(cycle, facilitator, is_anonymous=True, position=1, text="fb")
+    member_anonymous = make_card(cycle, member, is_anonymous=True, position=0, text="ma")
+
+    cycle.close()
+    cycle.refresh_from_db()
+    retro = cycle.retrospective
+
+    advance_stage(facilitator, retro, Stage.REVEAL)
+    retro.refresh_from_db()
+
+    assert retro.stage == Stage.REVEAL
+
+    fac_attributed.refresh_from_db()
+    fac_anonymous.refresh_from_db()
+    member_anonymous.refresh_from_db()
+
+    assert fac_attributed.author_id == facilitator.id
+    assert fac_anonymous.author is None
+    assert member_anonymous.author is None
+
+    fac_participation = CycleParticipation.objects.get(cycle=cycle, user=facilitator)
+    member_participation = CycleParticipation.objects.get(cycle=cycle, user=member)
+    assert fac_participation.card_count == 2
+    assert member_participation.card_count == 1
+
+    remaining_positions = set(
+        Card.objects.filter(cycle=cycle, category=Card.Category.START).values_list(
+            "position", flat=True
+        )
+    )
+    assert remaining_positions == {0, 1}

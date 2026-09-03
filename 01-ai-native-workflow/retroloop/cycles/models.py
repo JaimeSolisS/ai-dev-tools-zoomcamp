@@ -133,3 +133,34 @@ class Card(models.Model):
 
     def __str__(self):
         return f"{self.category}: {self.text[:40]}"
+
+
+class CycleParticipation(models.Model):
+    """A durable, authorless record that a member participated in a
+    cycle's feedback collection. See issue #10 and
+    `_docs/architecture.md`'s "anonymity design" section.
+
+    Written once, by `retro.services._on_reveal`, from each distinct
+    card author's card count -- computed *before* `Card.author` is
+    nulled for anonymous cards, since that's the last moment the link
+    between a card and its author exists. This model records only
+    *that* a member submitted and *how many* cards -- never which
+    cards, so it carries no anonymity risk itself. `unique_together`
+    also serves as the DB-level backstop against `_on_reveal` somehow
+    running twice for the same cycle (see that function's docstring).
+    """
+
+    cycle = models.ForeignKey(
+        FeedbackCycle, on_delete=models.CASCADE, related_name="participations"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cycle_participations"
+    )
+    card_count = models.PositiveIntegerField()
+    submitted_at = models.DateTimeField()
+
+    class Meta:
+        unique_together = ("cycle", "user")
+
+    def __str__(self):
+        return f"{self.user} in {self.cycle} ({self.card_count} cards)"
