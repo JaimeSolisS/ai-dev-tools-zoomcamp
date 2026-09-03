@@ -27,4 +27,35 @@
       </p>
     {% endif %}
   </section>
+
+  <section class="mt-8 rounded-md border border-slate-200 bg-white p-4">
+    <h2 class="text-sm font-semibold text-slate-900">Feedback cycle</h2>
+    {% if collecting_cycle %}
+      <p class="mt-1 text-sm text-slate-600">
+        Week of {{ collecting_cycle.week_start }} &middot; facilitated by
+        {{ collecting_cycle.facilitator }}
+      </p>
+      {% if can_close_cycle %}
+        <form method="post" action="{% url 'cycle-close' pk=collecting_cycle.pk %}" class="mt-4">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Close cycle
+          </button>
+        </form>
+      {% endif %}
+    {% else %}
+      <p class="mt-1 text-sm text-slate-600">No open cycle.</p>
+      {% if can_create_cycle %}
+        <a
+          href="{% url 'cycle-create' project_pk=project.pk %}"
+          class="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+        >
+          Start a cycle
+        </a>
+      {% endif %}
+    {% endif %}
+  </section>
 {% endblock %}

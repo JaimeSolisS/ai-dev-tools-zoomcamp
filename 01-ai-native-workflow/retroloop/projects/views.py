@@ -14,9 +14,10 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from cycles.models import FeedbackCycle
 from projects.forms import ProjectForm
 from projects.models import Membership, Project
-from projects.permissions import can_rotate_join_token
+from projects.permissions import can_close_cycle, can_create_cycle, can_rotate_join_token
 
 
 def _visible_to(user):
@@ -58,7 +59,18 @@ def project_create(request):
 @login_required
 def project_detail(request, pk):
     project = get_object_or_404(_visible_to(request.user), pk=pk)
-    return render(request, "projects/detail.html", {"project": project})
+    # Stub for #26 (no dedicated project-detail task landed yet): show the
+    # current COLLECTING cycle's week_start/facilitator, or "no open
+    # cycle" -- see issue #7.
+    collecting_cycle = project.cycles.filter(status=FeedbackCycle.Status.COLLECTING).first()
+    context = {
+        "project": project,
+        "collecting_cycle": collecting_cycle,
+        "can_create_cycle": can_create_cycle(request.user, project),
+        "can_close_cycle": bool(collecting_cycle)
+        and can_close_cycle(request.user, collecting_cycle),
+    }
+    return render(request, "projects/detail.html", context)
 
 
 @login_required

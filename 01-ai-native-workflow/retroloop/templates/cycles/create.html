@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}New cycle · {{ project.name }} · Retroloop{% endblock %}
+
+{% block content %}
+  <h1 class="text-3xl font-bold tracking-tight text-slate-900">New feedback cycle</h1>
+  <p class="mt-1 text-sm text-slate-600">{{ project.name }}</p>
+
+  <form method="post" class="mt-6 max-w-sm space-y-4" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" role="alert">
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700">
+          {{ field.label }}
+        </label>
+        {{ field }}
+        {% for error in field.errors %}
+          <p class="mt-1 text-sm text-red-600" role="alert">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <button
+      type="submit"
+      class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+    >
+      Start cycle
+    </button>
+  </form>
+{% endblock %}

@@ -28,4 +28,7 @@ urlpatterns = [
     # Top-level per issue #5: the join link is `/join/<token>/`, not
     # namespaced under /projects/.
     path("join/<uuid:token>/", project_views.join, name="project-join"),
+    # cycles.urls owns its own top-level prefixes
+    # (/projects/<id>/cycles/new/, /cycles/<id>/close/) -- see issue #7.
+    path("", include("cycles.urls")),
 ]
