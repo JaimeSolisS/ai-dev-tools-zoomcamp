@@ -31,4 +31,6 @@ urlpatterns = [
     # cycles.urls owns its own top-level prefixes
     # (/projects/<id>/cycles/new/, /cycles/<id>/close/) -- see issue #7.
     path("", include("cycles.urls")),
+    # retro.urls owns /retros/<id>/advance/ -- see issue #9.
+    path("", include("retro.urls")),
 ]

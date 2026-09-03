@@ -16,7 +16,7 @@ a constraint on who can be assigned.
 """
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -57,12 +57,34 @@ class FeedbackCycle(models.Model):
         """Idempotent: closing an already-CLOSED cycle is a no-op -- does
         not re-stamp `closes_at` and does not error. Callers (views) are
         responsible for the authorization check via
-        `projects.permissions.can_close_cycle` before calling this."""
+        `projects.permissions.can_close_cycle` before calling this.
+
+        Issue #9: also creates this cycle's `Retrospective` row
+        (`stage=DRAFT`, `version=1`), in the same transaction as the
+        status write, via `get_or_create` -- so a race between two
+        concurrent `close()` calls (or a caller ignoring the early-return
+        above) can never create a second row or reset an in-progress
+        retrospective. A `Retrospective` existing is proof its cycle is
+        `CLOSED`; `retro.services.advance_stage` relies on this and does
+        not re-check cycle status itself.
+        """
         if self.status == self.Status.CLOSED:
             return
-        self.status = self.Status.CLOSED
-        self.closes_at = timezone.now()
-        self.save(update_fields=["status", "closes_at"])
+        # Local import: retro.models has no import-time dependency on
+        # cycles.models (it references "cycles.FeedbackCycle" as a
+        # string FK), but importing it at module level here would make
+        # cycles depend on retro at Django app-loading time -- keep the
+        # dependency local to where it's actually used.
+        from retro.models import Retrospective
+
+        with transaction.atomic():
+            self.status = self.Status.CLOSED
+            self.closes_at = timezone.now()
+            self.save(update_fields=["status", "closes_at"])
+            Retrospective.objects.get_or_create(
+                cycle=self,
+                defaults={"stage": Retrospective.Stage.DRAFT, "version": 1},
+            )
 
 
 class Card(models.Model):

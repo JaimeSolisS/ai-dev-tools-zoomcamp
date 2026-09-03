@@ -15,6 +15,10 @@ adds `can_add_card`/`can_edit_card`/`can_delete_card` for `cycles.Card`.
 Every predicate here returns `False` for `AnonymousUser` and for a user
 with no (or a deleted) `Membership` row -- it never raises for those
 cases. Callers should not need to check `is_authenticated` first.
+
+Issue #9 adds `can_advance_stage` for `retro.Retrospective`, same module,
+same style, per that issue's own note: "no new concept of facilitator is
+introduced."
 """
 
 
@@ -93,3 +97,13 @@ def can_delete_card(user, card):
     if card.cycle.status != card.cycle.Status.COLLECTING:
         return False
     return card.author_id == user.id
+
+
+def can_advance_stage(user, retrospective):
+    """True only for `retrospective.cycle.facilitator` -- the same
+    per-cycle FK `can_close_cycle` checks (issue #7). Issue #9: no new
+    concept of facilitator is introduced; a `Retrospective`'s facilitator
+    is always its cycle's facilitator."""
+    if not user.is_authenticated:
+        return False
+    return retrospective.cycle.facilitator_id == user.id
