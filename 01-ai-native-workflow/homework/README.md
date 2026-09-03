@@ -159,8 +159,10 @@ What's the command you use for running tests in the terminal?
 - `django-admin test`
 
 ```prompt
-I want to cover the code with tests. which scenarios we should cover? Make sure they make sense. Implement them and run them.
+I want to cover the code with tests. Which scenarios we should cover? Make sure they make sense. Implement them and run them. Add info on how to run tests in readme
 ```
+
+**Answer: uv run python manage.py test**
 
 ## Submission
 

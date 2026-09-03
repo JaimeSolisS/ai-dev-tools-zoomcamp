@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -57,6 +58,12 @@ AUTH_USER_MODEL = 'chores.User'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
+
+if 'test' in sys.argv:
+    # Skip the (deliberately slow) PBKDF2 hasher during tests — this file
+    # creates many users via create_user(), and hashing isn't what's
+    # under test.
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 
 TEMPLATES = [
     {

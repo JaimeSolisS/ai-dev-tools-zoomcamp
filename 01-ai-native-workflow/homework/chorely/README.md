@@ -52,11 +52,55 @@ Notes below). From there:
   keeps their historical record but clears them from any unfinished chores.
 - Django admin is still available at `/admin/` for direct data inspection.
 
-Run the test suite with:
+## Running tests
 
 ```bash
+# Run the whole suite
 uv run python manage.py test
+
+# Run one test module/class/method
+uv run python manage.py test chores.tests.StatusTransitionTests
+uv run python manage.py test chores.tests.StatusTransitionTests.test_admin_can_set_any_status_directly
+
+# Verbose output (per-test pass/fail as it runs)
+uv run python manage.py test -v 2
 ```
+
+`chores/tests.py` covers, by scenario:
+
+- **Status lifecycle** — legal member transitions (Pending↔In progress↔Done),
+  illegal ones rejected, admin can set any status directly, only an assignee
+  (any one of several) may change status, `CompletionHistory` is
+  created/removed on Done/reopen.
+- **Overdue** — past-due + not-Done is overdue; past-due-but-Done and
+  future-due are not.
+- **Claiming** — a member can claim an unassigned chore, cannot claim one
+  that's already assigned, and admins cannot claim at all.
+- **Edit locking** — Done chores can't be edited; unfinished ones can, and an
+  admin can move an overdue chore to a future date.
+- **View-level permissions** — members are blocked (403) from the edit view
+  and both member-management screens; a member's chore is always forced to
+  assignee=self regardless of what's posted; no delete route exists anywhere.
+- **HTTP-level status/claim actions** — GET is rejected (POST-only), illegal
+  or unauthorized attempts redirect with a flash message instead of
+  crashing, and legal ones actually change the database.
+- **Household isolation** — a chore, member, or calendar entry from one
+  household is never visible (404 or absent from the page) to another
+  household's users.
+- **Calendar, day, and history views** — a chore renders on its due date,
+  the `+N more` overflow link appears past the per-day cap, the day-detail
+  page lists every chore for that date, and history is ordered
+  most-recently-completed first and only ever shows title + completion date.
+- **Member management** — duplicate usernames are rejected, a newly created
+  member can actually log in, and removal deactivates the member while
+  unassigning only their unfinished chores (Done chores keep their record).
+- **`seed_categories` command** — creates the 9 fixed categories and is
+  idempotent (running it twice doesn't duplicate rows).
+
+Tests use `django.contrib.auth.hashers.MD5PasswordHasher` instead of the
+default PBKDF2 hasher (see `config/settings.py`, gated on `'test' in
+sys.argv`) — this is test-only and has no effect on real deployments; it
+just avoids re-hashing passwords with a slow algorithm for every test user.
 
 ## Project layout
 
@@ -70,8 +114,7 @@ uv run python manage.py test
   - `signals.py` — bootstraps a `Household` for a user's first login (e.g.
     a freshly created superuser) so there's no separate setup step.
   - `management/commands/seed_categories.py` — seeds the fixed category list.
-  - `tests.py` — permission, status-transition, overdue, claim, and member
-    removal tests.
+  - `tests.py` — see "Running tests" below for what's covered.
 - `_docs/plan.md` — product/MVP plan.
 - `_docs/backlog.md` — task backlog derived from the plan.
 
