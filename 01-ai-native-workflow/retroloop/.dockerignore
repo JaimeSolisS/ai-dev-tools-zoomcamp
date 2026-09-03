@@ -1,0 +1,16 @@
+.venv
+.git
+.gitignore
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+*.egg-info
+build
+dist
+.env
+.DS_Store
+*.sqlite3
+staticfiles
+_docs
+README.md

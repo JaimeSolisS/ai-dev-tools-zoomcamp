@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # postgres:18+ images store data under /var/lib/postgresql (not the
+      # .../data subdirectory used by older images) to support pg_upgrade
+      # --link across major versions.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      DEBUG: ${DEBUG}
+      SCRATCH_DIR: /scratch
+    ports:
+      - "8000:8000"
+    volumes:
+      - scratch:/scratch
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    # Placeholder until #18 wires the real django-tasks-db worker command.
+    command: ["sh", "-c", "echo 'worker placeholder -- see #18'; while true; do sleep 3600; done"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      DEBUG: ${DEBUG}
+      SCRATCH_DIR: /scratch
+    volumes:
+      - scratch:/scratch
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  scratch:
