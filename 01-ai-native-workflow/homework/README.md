@@ -115,6 +115,16 @@ Then give your agent the `plan.md` and ask it to propose a small backlog of task
 
 What's task 1 in the backlog your agent came up with?
 
+```prompt
+Read _docs/plan.md and to propose a small backlog of tasks for building this in Django. Write the result to `backlog.md`
+```
+
+**Answer: ## 1. Foundations **
+
+- [ ] **Data models**: `Household`, `User` (extend `AbstractUser` with `display_name`, `role`, `household` FK), `Category` (seeded, `is_system`), `Chore`, `ChoreAssignee` (join table), `CompletionHistory`. Design `User`/`Household` as a FK now (not M2M) so multi-household support can be added later without a schema rewrite.
+- [ ] **Custom user model wiring**: set `AUTH_USER_MODEL`, register in admin, initial migration. Must be done before any other migration touches `User`.
+- [ ] **Seed data**: management command or migration to create the fixed category list (Cleaning, Kitchen, Laundry, Bathroom, Bedroom, Shopping, Trash, Pet Care, Other).
+
 ## Question 5: First version
 
 Implement the first few tasks. Just open your agent and say:
@@ -129,6 +139,8 @@ Run the server. Which command do you use to start the Django development server?
 - `uv run django-admin startserver`
 - `python manage.py start`
 - `uv run python app.py runserver`
+
+**Answer: uv run python manage.py runserver**
 
 ## Question 6: Tests
 
