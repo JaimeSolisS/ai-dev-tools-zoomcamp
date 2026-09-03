@@ -3,6 +3,10 @@
 A Django MVP for managing shared household chores. See `_docs/plan.md` for
 the full product plan and `_docs/backlog.md` for the implementation backlog.
 
+<p align="center">
+  <img width="50%" src="../../img/chorely.png" alt="Chorely App Image">
+</p>
+
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (manages the Python version and virtual
@@ -106,15 +110,15 @@ just avoids re-hashing passwords with a slow algorithm for every test user.
 
 - `config/` — Django project settings, root URLs, WSGI/ASGI entrypoints.
 - `chores/` — the app:
-  - `models.py` — `Household`, `User`, `Category`, `Chore`, `ChoreAssignee`,
-    `CompletionHistory`, plus the status-transition/claim/overdue logic.
-  - `views.py`, `urls.py`, `forms.py` — calendar, chore CRUD, status/claim
-    actions, completion history, and member management.
-  - `templates/chores/` — server-rendered templates (no JS framework).
-  - `signals.py` — bootstraps a `Household` for a user's first login (e.g.
-    a freshly created superuser) so there's no separate setup step.
-  - `management/commands/seed_categories.py` — seeds the fixed category list.
-  - `tests.py` — see "Running tests" below for what's covered.
+    - `models.py` — `Household`, `User`, `Category`, `Chore`, `ChoreAssignee`,
+      `CompletionHistory`, plus the status-transition/claim/overdue logic.
+    - `views.py`, `urls.py`, `forms.py` — calendar, chore CRUD, status/claim
+      actions, completion history, and member management.
+    - `templates/chores/` — server-rendered templates (no JS framework).
+    - `signals.py` — bootstraps a `Household` for a user's first login (e.g.
+      a freshly created superuser) so there's no separate setup step.
+    - `management/commands/seed_categories.py` — seeds the fixed category list.
+    - `tests.py` — see "Running tests" below for what's covered.
 - `_docs/plan.md` — product/MVP plan.
 - `_docs/backlog.md` — task backlog derived from the plan.
 
