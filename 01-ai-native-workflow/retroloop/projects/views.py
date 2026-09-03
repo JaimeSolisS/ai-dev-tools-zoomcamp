@@ -2,9 +2,8 @@
 rotating the join token.
 
 Issue #5 constraints: no `if request.user == project.owner` scattered
-through views -- the two checks this task needs live as small named
-helpers below, understood to be temporary until #6 centralizes them in
-`projects/permissions.py`.
+through views. Authorization checks call into `projects/permissions.py`
+(#6) rather than being inlined here.
 """
 
 import uuid
@@ -17,17 +16,16 @@ from django.views.decorators.http import require_POST
 
 from projects.forms import ProjectForm
 from projects.models import Membership, Project
-
-
-def _is_owner(project, user):
-    return project.owner_id == user.id
+from projects.permissions import can_rotate_join_token
 
 
 def _visible_to(user):
     """Projects `user` has a Membership row on. Every view that shows or
     accepts a project id filters through this queryset so a non-member
     gets 404 (not 403) -- the response never reveals whether the project
-    exists, per issue #5."""
+    exists, per issue #5. This mirrors `can_view_project` as a queryset
+    rather than calling the predicate row-by-row, since these views need
+    "which projects" not "can I see this one" -- see #6."""
     return Project.objects.filter(memberships__user=user)
 
 
@@ -88,7 +86,7 @@ def rotate_token(request, pk):
     """POST /projects/<id>/rotate-token/. Owner-only: a non-member gets
     404 (via `_visible_to`), a member who isn't the owner gets 403."""
     project = get_object_or_404(_visible_to(request.user), pk=pk)
-    if not _is_owner(project, request.user):
+    if not can_rotate_join_token(request.user, project):
         return HttpResponseForbidden()
 
     project.join_token = uuid.uuid4()
