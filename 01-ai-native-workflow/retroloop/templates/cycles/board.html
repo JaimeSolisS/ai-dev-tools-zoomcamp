@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% comment %}
+Three-column Start/Stop/Continue board (issue #8). Only the requesting
+member's own cards ever land in `columns` -- filtered in `card_board`'s
+queryset, not here. Each column has its own small add-card form; category
+is a hidden field per form, not user-selectable, since each form only
+ever posts into its own column.
+{% endcomment %}
+
+{% block title %}Feedback · {{ project.name }} · Retroloop{% endblock %}
+
+{% block content %}
+  <h1 class="text-3xl font-bold tracking-tight text-slate-900">{{ project.name }}</h1>
+  <p class="mt-1 text-sm text-slate-600">Week of {{ cycle.week_start }} &middot; your cards only</p>
+
+  {% if cycle.status != "COLLECTING" %}
+    <p class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+      This cycle is closed -- cards can no longer be added, edited, or deleted.
+    </p>
+  {% endif %}
+
+  <div class="mt-6 grid gap-4 sm:grid-cols-3">
+    {% for value, label, cards in columns %}
+      <section class="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <h2 class="text-sm font-semibold text-slate-900">{{ label }}</h2>
+
+        <ul id="cards-{{ value }}" class="mt-3 space-y-2">
+          {% for card in cards %}
+            {% include "cycles/_card.html" %}
+          {% endfor %}
+        </ul>
+
+        {% if cycle.status == "COLLECTING" %}
+          <form
+            hx-post="{% url 'card-create' cycle_pk=cycle.pk %}"
+            hx-target="#cards-{{ value }}"
+            hx-swap="beforeend"
+            class="mt-3 space-y-2"
+          >
+            {% csrf_token %}
+            <input type="hidden" name="category" value="{{ value }}" />
+            <textarea
+              name="text"
+              rows="2"
+              maxlength="500"
+              placeholder="Add a card..."
+              class="w-full rounded-md border border-slate-300 p-2 text-sm"
+            ></textarea>
+            <label class="flex items-center gap-1 text-xs text-slate-600">
+              <input type="checkbox" name="is_anonymous" /> Anonymous
+            </label>
+            <button
+              type="submit"
+              class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+            >
+              Add
+            </button>
+          </form>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

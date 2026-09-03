@@ -35,6 +35,12 @@
         Week of {{ collecting_cycle.week_start }} &middot; facilitated by
         {{ collecting_cycle.facilitator }}
       </p>
+      <a
+        href="{% url 'card-board' cycle_pk=collecting_cycle.pk %}"
+        class="mt-4 inline-block rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Add your cards
+      </a>
       {% if can_close_cycle %}
         <form method="post" action="{% url 'cycle-close' pk=collecting_cycle.pk %}" class="mt-4">
           {% csrf_token %}

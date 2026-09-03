@@ -63,3 +63,51 @@ class FeedbackCycle(models.Model):
         self.status = self.Status.CLOSED
         self.closes_at = timezone.now()
         self.save(update_fields=["status", "closes_at"])
+
+
+class Card(models.Model):
+    """A single Start/Stop/Continue card. See issue #8 and
+    `_docs/architecture.md`'s "Feedback collection" section.
+
+    Design decisions (issue #8):
+
+    - `author` is nullable **from the start**, not added later -- #10's
+      reveal step nulls it out for anonymous cards, and designing it
+      non-nullable here would force a breaking migration when that lands.
+    - `is_anonymous` is stored here but has no effect in this task's views
+      -- a member already only ever sees their own cards on this screen
+      (queryset filter in `cycles.views`), so there's no one to hide the
+      author from yet. It's read by #10's reveal to decide which cards get
+      `author` nulled.
+    - `position` is the next integer within `(cycle, category)` for that
+      member's cards, assigned by the view at creation time -- creation
+      order only, not user-reorderable in this task (see #14).
+    - Create/edit/delete are all gated on `cycle.status == COLLECTING` --
+      enforced by the `can_add_card`/`can_edit_card`/`can_delete_card`
+      predicates in `projects/permissions.py`, never inline in the view.
+    """
+
+    class Category(models.TextChoices):
+        START = "START", "Start"
+        STOP = "STOP", "Stop"
+        CONTINUE = "CONTINUE", "Continue"
+
+    cycle = models.ForeignKey(FeedbackCycle, on_delete=models.CASCADE, related_name="cards")
+    category = models.CharField(max_length=20, choices=Category.choices)
+    text = models.CharField(max_length=500)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cards",
+    )
+    is_anonymous = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["category", "position"]
+
+    def __str__(self):
+        return f"{self.category}: {self.text[:40]}"
