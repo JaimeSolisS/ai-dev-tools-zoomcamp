@@ -450,3 +450,65 @@ Test issue #2
 If we get a PASS, that’s great. If we get a FAIL, that’s also useful: we caught a regression. So we start a new engineer session, use the QA comment as input, and ask the engineer to fix it.
 
 We iterate until QA says PASS.
+
+# We have three roles:
+
+Product manager grooms an issue
+
+Software engineer implements it
+
+QA engineer tests it, outputs PASS or FAIL
+
+If QA says FAIL, the engineer will need to reimplement it. Otherwise, the task is done.
+
+We can visualize this process as a graph:
+
+<p align="center">
+  <img width="100%" src="img/graph.png" alt="AI Dev Tools Zoomcamp Cover Image">
+</p>
+
+If we have an orchestrator that launches these agents automatically instead of us doing it manually, we get “graph engineering”. We define a graph with specialized agents as nodes and describe how the work moves from one to another.
+
+I wouldn’t call it a new idea, though, and loop engineering is definitely not dead. Even with graphs, we still need a loop to drive the work and orchestrate it across multiple agents with different roles.
+
+# The orchestrator
+
+To implement it, we need an orchestrator.
+
+Describe it in process.md:
+
+```markdown
+Orchestrator
+
+The main session is the orchestrator. It launches the PM, the engineer
+and QA as subagents. It does not groom, implement or test itself.
+
+Lifecycle
+
+1. Pick the next open issue from the backlog
+2. PM grooms it
+3. Engineer implements it
+4. QA verifies it
+5. On FAIL, back to step 3 with the QA comment as input
+6. On PASS, close the issue
+7. Repeat until the backlog is empty
+
+Rules
+
+- Do not skip step 2
+- The engineer does not close the issue
+- QA does not fix the code, only outputs PASS or FAIL
+- The orchestrator closes the issue only after QA outputs PASS
+```
+
+We can now start a fresh session and launch the loop:
+
+```prompt
+/goal work through the backlog
+```
+
+The agent reads AGENTS.md, finds process.md, follows the lifecycle, and dispatches the agents according to the documents in \_docs/team/.
+
+Because we combine it with a goal, the orchestrator runs until the condition holds.
+
+Note: this approach takes significantly more time and tokens than a direct loop with only a software engineer. In many cases, you don’t need this complexity. Often, a simple prompt or loop is enough.
