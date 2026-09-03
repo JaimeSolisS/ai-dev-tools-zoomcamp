@@ -16,10 +16,9 @@ We don't specify anything else, and most of you will finish with different proje
 
 In this homework, we want to turn this vague description into a clear specification.
 
-
 ## Question 1: Select your coding agent
 
-You can use any coding agent you want. Which one did you choose? 
+You can use any coding agent you want. Which one did you choose?
 
 **Answer: Claude Code**
 
@@ -36,31 +35,38 @@ and understand how the tool should work. Give me options.
 Ask me one question at a time and keep your output short.
 ```
 
-Answer its questions, then ask it to save everything to a markdown file. 
+Answer its questions, then ask it to save everything to a markdown file.
 
 What are the 2-4 features your spec settled on?
 
-**Answer:** 
+**Answer:**
 The spec settled on these 4 core MVP features:
 
 1. Shared chore calendar
+
 - Month and week views
 - Chores shown by due date
 - Shows title, assignee, and status
 - Overdue chores remain visible
+
 2. Chore management
+
 - Create one-time chores with title, description, due date, assignee(s), and category
 - Statuses: Pending, In progress, Done
 - Admins can edit chores before completion
 - Members can create chores only for themselves
+
 3. Household member management
+
 - Admin creates member accounts with username + password + display name
 - Simple Admin / Member roles
 - Admin can remove members and manage assignments
+
 4. Basic completion history
+
 - Everyone can view a chronological history
 - Shows completed chores and completion date
-- Reopened chores are removed from completion history**
+- Reopened chores are removed from completion history\*\*
 
 ## GitHub Repository
 
@@ -74,7 +80,7 @@ Commit and push.
 
 ## Question 3: Django project
 
-For this project we'll use Django. 
+For this project we'll use Django.
 
 Ask your agent to install Django and create a project and an app for it. At some point, you will need to include the app you created in the project.
 
@@ -87,13 +93,27 @@ What's the file you need to edit for that?
 
 For this and next questions you can ask your coding assistant to select the correct option.
 
+Prompts:
+
+```
+For this project we'll use Django. Install Django and create a project and an app for it.
+```
+
+```
+ At some point, I will to include the app created in the project. What is the file I need to edit for that?
+  - settings.py
+  - manage.py
+  - urls.py
+  - wsgi.py
+```
+
+**Answer: settings.py — you add the app to the INSTALLED_APPS list (already done for chores in config/settings.py).**
 
 ## Question 4: Backlog
 
 Then give your agent the `plan.md` and ask it to propose a small backlog of tasks for building this in Django. Write the result to `backlog.md`.
 
 What's task 1 in the backlog your agent came up with?
-
 
 ## Question 5: First version
 
@@ -110,11 +130,9 @@ Run the server. Which command do you use to start the Django development server?
 - `python manage.py start`
 - `uv run python app.py runserver`
 
-
-
 ## Question 6: Tests
 
-After implementing a few items from the backlog, let's make sure the code is covered with tests. 
+After implementing a few items from the backlog, let's make sure the code is covered with tests.
 
 - Tell the agent we want to cover the code with tests
 - Ask it which scenarios we should cover
@@ -127,7 +145,6 @@ What's the command you use for running tests in the terminal?
 - `python manage.py test`
 - `python -m django run_tests`
 - `django-admin test`
-
 
 ## Submission
 
@@ -152,6 +169,7 @@ Don't worry about being perfect. Everyone starts somewhere, and people love foll
 ### Example post for LinkedIn:
 
 ---
+
 🚀 Week 1 of AI Dev Tools Zoomcamp by @DataTalksClub complete!
 
 Turned a vague one-line idea into a spec, broke it into a backlog, and let an AI coding agent build a Django app for managing shared household chores!
