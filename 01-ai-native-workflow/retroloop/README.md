@@ -138,6 +138,26 @@ uses Django's `ManifestStaticFilesStorage`, so every collected file gets a
 content-hashed name (e.g. `app.<hash>.css`) and a redeploy can't serve a
 stale cached asset to a returning browser.
 
+## Accounts, login, and passwords
+
+Signup (`/accounts/signup/`), login (`/accounts/login/`), and logout
+(`/accounts/logout/`, POST-only) use the stock
+`django.contrib.auth.models.User` model — no custom `AUTH_USER_MODEL`, no
+profile table. A user's display name lives in `User.first_name`.
+
+**There is no email address anywhere in this app, and no self-serve
+password reset.** No mail backend is configured (per `AGENTS.md`), so
+`password_reset/` and every other reset-flow URL normally bundled in
+`django.contrib.auth.urls` are not wired — only login and logout are. If a
+user forgets their password, an admin resets it from the command line:
+
+```sh
+uv run manage.py changepassword <username>
+```
+
+(or `docker compose run web uv run manage.py changepassword <username>`
+under Compose). That's the only password-reset path.
+
 ### Flash messages and HTMX
 
 `templates/base.html` renders Django's `messages` framework once, in the

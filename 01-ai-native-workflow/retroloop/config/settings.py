@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -102,6 +103,14 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Auth (see #4: accounts app). Stock django.contrib.auth.models.User, no
+# AUTH_USER_MODEL swap -- decision recorded in that issue. Only login and
+# signup are wired below; no password-reset URLs exist anywhere (see
+# README) since no mail backend is configured.
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
 # Sessions are database-backed per architecture.md; no Redis, no cache server.
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
