@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Chorely{% endblock %}</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f7f7f8; color: #1a1a1a; }
+    header { background: #2f3e46; color: white; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    header a { color: white; text-decoration: none; font-size: 0.95rem; }
+    header a:hover { text-decoration: underline; }
+    header .brand { font-weight: 700; font-size: 1.1rem; margin-right: auto; }
+    main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
+    .card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #eee; }
+    .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 6px; border: 1px solid #2f3e46; background: #2f3e46; color: white; text-decoration: none; cursor: pointer; font-size: 0.9rem; }
+    .btn.secondary { background: white; color: #2f3e46; }
+    .btn.danger { background: #b3261e; border-color: #b3261e; }
+    form.inline { display: inline; }
+    .status { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .status-pending { background: #e0e0e0; color: #333; }
+    .status-in_progress { background: #bfdbfe; color: #1e3a8a; }
+    .status-done { background: #bbf7d0; color: #14532d; }
+    .overdue-label { color: #b3261e; font-weight: 700; font-size: 0.75rem; }
+    .messages { list-style: none; padding: 0; }
+    .messages li { padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; }
+    .messages .success { background: #d1fae5; color: #065f46; }
+    .messages .error { background: #fee2e2; color: #991b1b; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .calendar-day { background: white; border: 1px solid #e0e0e0; border-radius: 6px; min-height: 90px; padding: 0.35rem; font-size: 0.8rem; }
+    .calendar-day.today { border-color: #2f3e46; border-width: 2px; }
+    .calendar-day.other-month { opacity: 0.4; }
+    .calendar-day .date-num { font-weight: 600; margin-bottom: 0.25rem; }
+    .chore-chip { display: block; background: #f1f5f9; border-radius: 4px; padding: 0.15rem 0.3rem; margin-bottom: 2px; text-decoration: none; color: #1a1a1a; font-size: 0.72rem; }
+    .field { margin-bottom: 0.9rem; }
+    .field label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+    input, textarea, select { width: 100%; padding: 0.4rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Chorely</span>
+    {% if user.is_authenticated %}
+      <a href="{% url 'home' %}">Calendar</a>
+      <a href="{% url 'chore_create' %}">New Chore</a>
+      <a href="{% url 'history' %}">History</a>
+      {% if user.is_admin %}<a href="{% url 'member_list' %}">Manage Members</a>{% endif %}
+      <span>{{ user.display_name }} ({{ user.role }})</span>
+      <form class="inline" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="btn secondary" type="submit">Log out</button>
+      </form>
+    {% endif %}
+  </header>
+  <main>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

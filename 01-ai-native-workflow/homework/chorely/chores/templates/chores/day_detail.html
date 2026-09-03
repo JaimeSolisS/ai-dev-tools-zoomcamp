@@ -1,0 +1,20 @@
+{% extends "chores/base.html" %}
+{% block title %}{{ date }} — Chorely{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Chores on {{ date }}</h1>
+  <table>
+    <tr><th>Title</th><th>Status</th><th>Assignees</th></tr>
+    {% for chore in chores %}
+    <tr>
+      <td><a href="{% url 'chore_detail' chore.pk %}">{{ chore.title }}</a></td>
+      <td><span class="status status-{{ chore.status }}">{{ chore.get_status_display }}</span>
+        {% if chore.is_overdue %}<span class="overdue-label">Overdue</span>{% endif %}</td>
+      <td>{% for a in chore.assignees.all %}{{ a.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}Unassigned{% endfor %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3">No chores on this date.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

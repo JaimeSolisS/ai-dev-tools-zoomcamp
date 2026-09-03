@@ -1,0 +1,58 @@
+{% extends "chores/base.html" %}
+{% load chores_extras %}
+{% block title %}Week {{ days.0|date:"W" }} — Chorely{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <a class="btn secondary" href="{% url 'calendar_week' prev_year prev_week %}">&larr; Prev</a>
+      <strong style="margin: 0 0.5rem;">{{ days.0|date:"M j" }} – {{ days.6|date:"M j, Y" }}</strong>
+      <a class="btn secondary" href="{% url 'calendar_week' next_year next_week %}">Next &rarr;</a>
+    </div>
+    <div>
+      <a class="btn secondary" href="{% url 'calendar_month' current_year current_month %}">Month</a>
+      <span class="btn secondary" style="cursor:default;">Week</span>
+    </div>
+  </div>
+</div>
+
+<div class="calendar-grid">
+  {% for day in days %}
+    <div class="calendar-day {% if day == today %}today{% endif %}" style="min-height: 220px;">
+      <div class="date-num">{{ day|date:"D j" }}</div>
+      {% with entry=grouped|dictitem:day %}
+        {% if entry %}
+          {% for chore in entry.visible %}
+            <a class="chore-chip" href="{% url 'chore_detail' chore.pk %}">
+              {{ chore.title }}
+              <span class="status status-{{ chore.status }}">{{ chore.get_status_display }}</span>
+              {% if chore.is_overdue %}<span class="overdue-label">Overdue</span>{% endif %}
+              <br>{% for a in chore.assignees.all %}{{ a.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}Unassigned{% endfor %}
+            </a>
+          {% endfor %}
+          {% if entry.overflow_count %}
+            <a href="{% url 'day_detail' day.year day.month day.day %}">+{{ entry.overflow_count }} more</a>
+          {% endif %}
+        {% endif %}
+      {% endwith %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if overdue_chores %}
+<div class="card">
+  <h2>Overdue</h2>
+  <table>
+    <tr><th>Title</th><th>Due date</th><th>Status</th><th>Assignees</th></tr>
+    {% for chore in overdue_chores %}
+    <tr>
+      <td><a href="{% url 'chore_detail' chore.pk %}">{{ chore.title }}</a></td>
+      <td>{{ chore.due_date }}</td>
+      <td><span class="status status-{{ chore.status }}">{{ chore.get_status_display }}</span></td>
+      <td>{% for a in chore.assignees.all %}{{ a.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}Unassigned{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

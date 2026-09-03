@@ -1,0 +1,31 @@
+{% extends "chores/base.html" %}
+{% block title %}Members — Chorely{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Members</h1>
+    <a class="btn" href="{% url 'member_create' %}">Create member</a>
+  </div>
+  <table>
+    <tr><th>Display name</th><th>Username</th><th>Role</th><th></th></tr>
+    {% for member in members %}
+    <tr>
+      <td>{{ member.display_name }}</td>
+      <td>{{ member.username }}</td>
+      <td>{{ member.get_role_display }}</td>
+      <td>
+        {% if member.role == "member" %}
+        <form class="inline" method="post" action="{% url 'member_remove' member.pk %}"
+              onsubmit="return confirm('Remove {{ member.display_name }}?');">
+          {% csrf_token %}
+          <button class="btn danger" type="submit">Remove</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">No members yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

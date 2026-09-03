@@ -1,0 +1,63 @@
+{% extends "chores/base.html" %}
+{% load chores_extras %}
+{% block title %}{{ chore.title }} — Chorely{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 520px;">
+  <h1>{{ chore.title }}
+    <span class="status status-{{ chore.status }}">{{ chore.get_status_display }}</span>
+    {% if chore.is_overdue %}<span class="overdue-label">Overdue</span>{% endif %}
+  </h1>
+
+  {% if chore.description %}<p>{{ chore.description }}</p>{% endif %}
+
+  <table>
+    <tr><th>Category</th><td>{{ chore.category }}</td></tr>
+    <tr><th>Due date</th><td>{{ chore.due_date }}</td></tr>
+    <tr><th>Assignees</th>
+      <td>
+        {% if chore.is_unassigned %}
+          <strong>Unassigned</strong>
+        {% else %}
+          {% for a in chore.assignees.all %}{{ a.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+    {% if can_claim %}
+      <form class="inline" method="post" action="{% url 'chore_claim' chore.pk %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Claim this chore</button>
+      </form>
+    {% endif %}
+
+    {% if user.is_admin %}
+      {% if chore.can_be_edited_by_admin %}
+        <a class="btn secondary" href="{% url 'chore_edit' chore.pk %}">Edit</a>
+      {% endif %}
+      {% for value, label in chore.Status.choices %}
+        {% if value != chore.status %}
+          <form class="inline" method="post" action="{% url 'chore_status' chore.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="{{ value }}">
+            <button class="btn secondary" type="submit">Set {{ label }}</button>
+          </form>
+        {% endif %}
+      {% endfor %}
+    {% elif is_assignee %}
+      {% with allowed=chore.MEMBER_TRANSITIONS|dictitem:chore.status %}
+        {% for value, label in chore.Status.choices %}
+          {% if value in allowed %}
+            <form class="inline" method="post" action="{% url 'chore_status' chore.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="{{ value }}">
+              <button class="btn secondary" type="submit">Mark {{ label }}</button>
+            </form>
+          {% endif %}
+        {% endfor %}
+      {% endwith %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
