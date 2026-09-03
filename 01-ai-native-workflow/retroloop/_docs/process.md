@@ -1,5 +1,5 @@
 - Tasks are GitHub issues, one at a time
-- Commit regularly
+- Commit and push after QA Pass and closes the issue
 
 Roles
 
