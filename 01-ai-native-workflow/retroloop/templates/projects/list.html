@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Projects · Retroloop{% endblock %}
+
+{% block content %}
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
+    <a
+      href="{% url 'project-create' %}"
+      class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+    >
+      New project
+    </a>
+  </div>
+
+  {% if projects %}
+    <ul class="mt-6 divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+      {% for project in projects %}
+        <li>
+          <a
+            href="{% url 'project-detail' pk=project.pk %}"
+            class="block px-4 py-3 text-sm font-medium text-slate-900 hover:bg-slate-50"
+          >
+            {{ project.name }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="mt-6 text-slate-600">You don't belong to any projects yet.</p>
+  {% endif %}
+{% endblock %}
