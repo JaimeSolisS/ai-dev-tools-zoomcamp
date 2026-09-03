@@ -86,6 +86,8 @@ before running the real command (gunicorn, or the worker placeholder).
 uv sync
 cp .env.example .env   # DATABASE_URL host stays `localhost`
 uv run manage.py migrate
+npm install
+npm run build           # one-off build of CSS/JS, see "Frontend assets" below
 uv run manage.py runserver
 ```
 
@@ -96,3 +98,54 @@ uv run manage.py runserver
 - `uv run manage.py migrate` - apply migrations
 - `uv run pytest` - the whole suite
 - `uv run ruff check . && uv run ruff format --check .` - lint and format
+- `npm install` - install frontend build tooling (Tailwind CLI, vendored
+  HTMX/Alpine)
+- `npm run watch:css` - rebuild Tailwind CSS on every save, for local dev
+- `npm run build` - one-off production build: compiled+minified CSS plus
+  vendored HTMX/Alpine JS copied into `static/`
+- `uv run manage.py collectstatic` - gather `static/` into `STATIC_ROOT`
+  with cache-busted (hashed) filenames, for deploy
+
+## Frontend assets (Tailwind / HTMX / Alpine)
+
+Tailwind 4 is configured CSS-first — there is no `tailwind.config.js`.
+`static_src/css/input.css` holds `@import "tailwindcss";`, an `@source`
+directive scoping content-scanning to `templates/**/*.html`, and an empty
+`@theme` block reserved for design tokens (`_docs/design-system.md` doesn't
+exist yet — tracked separately in issue #29, not improvised here).
+
+`static/` is the build **output** directory (gitignored, not committed) and
+is what `STATICFILES_DIRS` points at:
+
+- `static/css/app.css` — compiled, minified Tailwind CSS, built by the
+  Tailwind CLI (`@tailwindcss/cli`) from `static_src/css/input.css`.
+- `static/js/htmx.min.js` and `static/js/alpine.min.js` — HTMX 2.0.10 and
+  Alpine 3.15.12, installed via npm and copied out of `node_modules` by
+  `static_src/copy-vendor.js` (`npm run build:js`). They're served as local
+  static files via `django.contrib.staticfiles`, never as CDN `<script
+  src="https://...">` tags.
+
+Local dev: run `npm run watch:css` in a separate terminal alongside
+`uv run manage.py runserver` so CSS rebuilds on save. JS vendor files rarely
+change, so `npm run build:js` is a one-off (re-run it after bumping the
+htmx.org/alpinejs versions in `package.json`).
+
+Production / deploy: run `npm ci && npm run build` before
+`uv run manage.py collectstatic --noinput`. Nothing under `static/` or
+`node_modules/` is committed to the repo, so both steps must run on every
+fresh checkout/build — there are no pre-built assets checked in. `STATIC_ROOT`
+uses Django's `ManifestStaticFilesStorage`, so every collected file gets a
+content-hashed name (e.g. `app.<hash>.css`) and a redeploy can't serve a
+stale cached asset to a returning browser.
+
+### Flash messages and HTMX
+
+`templates/base.html` renders Django's `messages` framework once, in the
+page chrome, on every full page load. HTMX partial views (see the
+`htmx-demo` endpoint) return only their fragment and never re-render
+`base.html`, so a message queued with `messages.success(...)` (or similar)
+during an HTMX request is **not** shown inside that same partial swap — it
+stays in the session and appears in the flash region on the user's next
+full page load/navigation. This decision (and the alternative a partial
+view has if it needs immediate feedback) is documented as a code comment
+next to the message block in `base.html`.

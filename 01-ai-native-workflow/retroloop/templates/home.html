@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1 class="text-3xl font-bold tracking-tight text-slate-900">Retroloop</h1>
+
+  <p class="mt-2 text-slate-600">
+    Weekly Start / Stop / Continue cycles and the retrospectives that follow.
+  </p>
+
+  <section class="mt-8">
+    {% comment %}
+    Placeholder proving the HTMX pipeline works end-to-end. Without JS,
+    this button is inert -- it's a plain button with no onclick, so the
+    rest of the page renders and works fine; HTMX/Alpine are progressive
+    additions, not requirements (see issue #3 edge cases).
+    {% endcomment %}
+    <button
+      type="button"
+      class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+      hx-get="{% url 'htmx-demo' %}"
+      hx-target="#htmx-demo-result"
+      hx-swap="innerHTML"
+    >
+      Load demo content
+    </button>
+    <div id="htmx-demo-result" class="mt-4 text-slate-700"></div>
+  </section>
+{% endblock %}

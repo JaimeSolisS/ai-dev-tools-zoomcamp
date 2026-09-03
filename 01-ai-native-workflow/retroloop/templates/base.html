@@ -1,0 +1,47 @@
+{% load static %}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Retroloop{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+    <nav class="border-b border-slate-200 bg-white px-4 py-3" aria-label="Main">
+      {# Intentionally empty: no navigation links yet. #4 wires in #}
+      {# login/logout/signup once this base.html exists -- see issue #3's #}
+      {# "Out of scope" section. #}
+    </nav>
+
+    {% comment %}
+    Flash messages, rendered from django.contrib.messages.
+    Decision (issue #3 edge case -- messages vs. HTMX partials): this
+    block only renders on a full page load/navigation. HTMX partial
+    views (see the `htmx-demo` endpoint) return just their fragment and
+    never re-render base.html, so a message queued with
+    messages.success(...) during an HTMX request does NOT appear inside
+    that same partial swap -- it sits in the session and surfaces here
+    the next time the user gets a full page render (e.g. after HTMX
+    redirects the browser, or on next navigation). A partial view that
+    needs to give the user feedback immediately must render that
+    feedback directly into its own fragment instead of relying on this
+    region.
+    {% endcomment %}
+    {% if messages %}
+      <div class="mx-auto max-w-3xl px-4 py-2" role="status">
+        {% for message in messages %}
+          <div class="rounded-md border border-slate-200 bg-white px-4 py-2 mb-2 text-sm {{ message.tags }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <main class="mx-auto max-w-3xl px-4 py-8">
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'js/htmx.min.js' %}"></script>
+    <script src="{% static 'js/alpine.min.js' %}" defer></script>
+  </body>
+</html>

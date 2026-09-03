@@ -1,0 +1,20 @@
+{
+  "name": "retroloop-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tailwind/HTMX/Alpine asset build for retroloop's Django templates. See README.md for dev/build commands.",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static_src/css/input.css -o ./static/css/app.css --minify",
+    "watch:css": "tailwindcss -i ./static_src/css/input.css -o ./static/css/app.css --watch",
+    "build:js": "node ./static_src/copy-vendor.js",
+    "build": "npm run build:css && npm run build:js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  },
+  "dependencies": {
+    "alpinejs": "3.15.12",
+    "htmx.org": "2.0.10"
+  }
+}

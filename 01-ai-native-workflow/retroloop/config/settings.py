@@ -45,7 +45,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -81,6 +81,25 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+
+# `static/` holds build output only (compiled CSS + vendored HTMX/Alpine JS,
+# produced by `npm run build` -- see README.md); the Tailwind source lives
+# in `static_src/` and is never collected. STATIC_ROOT is where
+# `collectstatic` gathers everything for production; it's gitignored, not
+# committed.
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Manifest storage hashes filenames from file content so a redeploy's new
+# CSS/JS never gets served stale from a returning browser's cache.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

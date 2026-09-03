@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Content scanning: Tailwind v4 is CSS-first, no tailwind.config.js. This
+   `@source` tells it exactly which templates to scan for utility classes so
+   the compiled stylesheet only contains what's actually referenced (per
+   issue #3's acceptance criteria), rather than relying purely on Tailwind's
+   automatic heuristic project-root scan. */
+@source "../../templates/**/*.html";
+
+/* Design tokens (colors, type scale, spacing) are explicitly out of scope
+   for this task -- _docs/design-system.md doesn't exist yet (see #29).
+   This @theme block is left empty on purpose; do not improvise tokens here. */
+@theme {
+}

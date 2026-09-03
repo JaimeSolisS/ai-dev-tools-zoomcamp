@@ -14,3 +14,15 @@ os.environ.setdefault(
 )
 
 from config.settings import *  # noqa: E402, F403
+
+# ManifestStaticFilesStorage requires a manifest built by `collectstatic`,
+# which the test suite doesn't run. Tests use plain staticfiles storage so
+# `{% static %}` resolves without a production asset build being present.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
