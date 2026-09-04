@@ -40,6 +40,8 @@ Answer its questions, then ask it to save everything to a markdown file.
 What are the 2-4 features your spec settled on?
 
 **Answer:**
+
+```markdown
 The spec settled on these 4 core MVP features:
 
 1. Shared chore calendar
@@ -67,6 +69,7 @@ The spec settled on these 4 core MVP features:
 - Everyone can view a chronological history
 - Shows completed chores and completion date
 - Reopened chores are removed from completion history
+```
 
 ## GitHub Repository
 
@@ -119,11 +122,15 @@ What's task 1 in the backlog your agent came up with?
 Read _docs/plan.md and to propose a small backlog of tasks for building this in Django. Write the result to `backlog.md`
 ```
 
-**Answer: Foundations**
+**Answer:**
+
+```markdown
+#1 Foundations
 
 - [ ] **Data models**: `Household`, `User` (extend `AbstractUser` with `display_name`, `role`, `household` FK), `Category` (seeded, `is_system`), `Chore`, `ChoreAssignee` (join table), `CompletionHistory`. Design `User`/`Household` as a FK now (not M2M) so multi-household support can be added later without a schema rewrite.
 - [ ] **Custom user model wiring**: set `AUTH_USER_MODEL`, register in admin, initial migration. Must be done before any other migration touches `User`.
 - [ ] **Seed data**: management command or migration to create the fixed category list (Cleaning, Kitchen, Laundry, Bathroom, Bedroom, Shopping, Trash, Pet Care, Other).
+```
 
 ## Question 5: First version
 
