@@ -1,0 +1,1800 @@
+openapi: 3.0.3
+info:
+  title: Balancio API
+  description: >
+    Shared expense splitter for friends, households, couples, trips, and
+    other small groups. See _docs/specs.md for the full product spec.
+  version: "0.1.0"
+servers:
+  - url: /api/v1
+
+tags:
+  - name: auth
+  - name: users
+  - name: groups
+  - name: categories
+  - name: expenses
+  - name: balances
+  - name: settlements
+  - name: refunds
+  - name: comments
+  - name: admin
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/setup:
+    post:
+      tags: [auth]
+      summary: Create the first global admin account
+      description: Only available while no admin exists yet.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetupRequest"
+      responses:
+        "201":
+          description: Admin created and logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Setup has already been completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in with username and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Incorrect username or password, or account deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/change-password:
+    post:
+      tags: [auth]
+      summary: Change the current user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Invalidate the current session
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Get the current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /users:
+    get:
+      tags: [users]
+      summary: List all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      tags: [users]
+      summary: Create a user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{user_id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      summary: Get a user by id
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [users]
+      summary: Update a user's display name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{user_id}/reset-password:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [users]
+      summary: Reset a user's password to a new temporary one (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "204":
+          description: Password reset
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{user_id}/force-password-change:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [users]
+      summary: Force a user to change their password on next login (admin only)
+      responses:
+        "204":
+          description: Flag set
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{user_id}/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [users]
+      summary: Deactivate a user (admin only, requires zero global balance)
+      responses:
+        "200":
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: User has a non-zero global balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{user_id}/activate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [users]
+      summary: Reactivate a deactivated user (admin only)
+      responses:
+        "200":
+          description: User activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups:
+    get:
+      tags: [groups]
+      summary: List groups (admin sees all, others see their own)
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      tags: [groups]
+      summary: Create a group (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{group_id}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      tags: [groups]
+      summary: Get a group by id
+      responses:
+        "200":
+          description: The group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [groups]
+      summary: Update a group's name/description (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{group_id}/members:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      tags: [groups]
+      summary: Add a member to a group (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          description: Group is archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{group_id}/members/{user_id}:
+    delete:
+      tags: [groups]
+      summary: Remove a member from a group (admin only, requires zero group balance)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          description: Member has a non-zero balance in this group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{group_id}/leave:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      tags: [groups]
+      summary: Leave a group (requires zero balance in that group)
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          description: Balance in this group is not zero
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{group_id}/archive:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      tags: [groups]
+      summary: Archive a group (admin only, requires all balances zero)
+      responses:
+        "200":
+          description: Archived group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          description: Group has non-zero balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{group_id}/balances:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      tags: [balances]
+      summary: Get the expense-derived balance breakdown for a group
+      responses:
+        "200":
+          description: Group balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupBalances"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /categories:
+    get:
+      tags: [categories]
+      summary: List categories (global, plus a group's own if group_id given)
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      tags: [categories]
+      summary: Create a category (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /categories/{category_id}:
+    parameters:
+      - $ref: "#/components/parameters/CategoryId"
+    patch:
+      tags: [categories]
+      summary: Rename a category (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [categories]
+      summary: Delete a category (admin only, only when unused)
+      responses:
+        "204":
+          description: Category deleted
+        "400":
+          description: Category is used by existing expenses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /expenses:
+    get:
+      tags: [expenses]
+      summary: List expenses visible to the current user
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: string
+        - name: member_id
+          in: query
+          schema:
+            type: string
+        - name: category_id
+          in: query
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: A page of expenses, newest expense_date first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+    post:
+      tags: [expenses]
+      summary: Create an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /expenses/{expense_id}:
+    parameters:
+      - $ref: "#/components/parameters/ExpenseId"
+    get:
+      tags: [expenses]
+      summary: Get an expense by id
+      responses:
+        "200":
+          description: The expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [expenses]
+      summary: Update an expense (creator or admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseUpdate"
+      responses:
+        "200":
+          description: Updated expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          description: >
+            Validation error, or the edit is blocked because confirmed
+            settlement activity depends on this expense's current balance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [expenses]
+      summary: Delete an expense permanently (creator or admin only)
+      responses:
+        "204":
+          description: Expense deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /expenses/{expense_id}/duplicate:
+    parameters:
+      - $ref: "#/components/parameters/ExpenseId"
+    post:
+      tags: [expenses]
+      summary: >
+        Get a draft copy of an expense for review (title/category/participants/
+        note/tags copied; date and payer amounts reset). Does not persist
+        anything until the draft is submitted via POST /expenses.
+      responses:
+        "200":
+          description: Draft expense input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseInput"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /balances/me:
+    get:
+      tags: [balances]
+      summary: Get global balances relative to the current user
+      responses:
+        "200":
+          description: Global balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobalBalances"
+
+  /balances/global:
+    get:
+      tags: [balances]
+      summary: Get global balances across all users
+      responses:
+        "200":
+          description: Global balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobalBalances"
+
+  /settlement-suggestions:
+    get:
+      tags: [balances]
+      summary: Get simplified settlement suggestions from global net balances
+      responses:
+        "200":
+          description: Suggested pairwise settlements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PairBalance"
+
+  /settlements:
+    get:
+      tags: [settlements]
+      summary: List settlements
+      responses:
+        "200":
+          description: List of settlements, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Settlement"
+    post:
+      tags: [settlements]
+      summary: Create a settlement (pending, awaiting recipient confirmation)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSettlementRequest"
+      responses:
+        "201":
+          description: Settlement created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /settlements/{settlement_id}:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    patch:
+      tags: [settlements]
+      summary: Edit a pending settlement (payer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettlementRequest"
+      responses:
+        "200":
+          description: Updated settlement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          description: Settlement is not pending, or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Confirm a pending settlement (recipient only)
+      responses:
+        "200":
+          description: Confirmed settlement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/reject:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Reject a pending settlement (recipient only)
+      responses:
+        "200":
+          description: Rejected settlement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Cancel a pending settlement (payer only)
+      responses:
+        "200":
+          description: Cancelled settlement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/request-reversal:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Request reversal of a confirmed settlement (either participant)
+      responses:
+        "200":
+          description: Settlement now reversal_pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          description: Settlement is not confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/confirm-reversal:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Confirm a pending reversal (the other participant)
+      responses:
+        "200":
+          description: Settlement now reversed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          description: No pending reversal, or same user who requested it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settlements/{settlement_id}/reject-reversal:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      tags: [settlements]
+      summary: Reject a pending reversal (settlement returns to confirmed)
+      responses:
+        "200":
+          description: Settlement back to confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          description: No pending reversal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /refunds:
+    get:
+      tags: [refunds]
+      summary: List refunds
+      responses:
+        "200":
+          description: List of refunds, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Refund"
+    post:
+      tags: [refunds]
+      summary: >
+        Create a refund. The creator's own confirmation is recorded
+        immediately; balances are unaffected until every participant confirms.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRefundRequest"
+      responses:
+        "201":
+          description: Refund created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Refund"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /refunds/{refund_id}:
+    parameters:
+      - $ref: "#/components/parameters/RefundId"
+    get:
+      tags: [refunds]
+      summary: Get a refund by id
+      responses:
+        "200":
+          description: The refund
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Refund"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /refunds/{refund_id}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/RefundId"
+    post:
+      tags: [refunds]
+      summary: >
+        Confirm a refund as the current user. Once every participant has
+        confirmed, the refund transitions to confirmed and affects balances.
+      responses:
+        "200":
+          description: Updated refund
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Refund"
+        "400":
+          description: Not a participant, or already confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /{transaction_type}/{transaction_id}/comments:
+    parameters:
+      - name: transaction_type
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/TransactionType"
+      - name: transaction_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [comments]
+      summary: List comments on a transaction
+      responses:
+        "200":
+          description: List of comments, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [comments]
+      summary: Add a comment (only users involved in the transaction)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /comments/{comment_id}:
+    parameters:
+      - $ref: "#/components/parameters/CommentId"
+    patch:
+      tags: [comments]
+      summary: Edit a comment (author only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+      responses:
+        "200":
+          description: Updated comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [comments]
+      summary: Delete a comment permanently (author only)
+      responses:
+        "204":
+          description: Comment deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/overview:
+    get:
+      tags: [admin]
+      summary: Basic system statistics for the admin dashboard (admin only)
+      responses:
+        "200":
+          description: System overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    GroupId:
+      name: group_id
+      in: path
+      required: true
+      schema:
+        type: string
+    CategoryId:
+      name: category_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ExpenseId:
+      name: expense_id
+      in: path
+      required: true
+      schema:
+        type: string
+    SettlementId:
+      name: settlement_id
+      in: path
+      required: true
+      schema:
+        type: string
+    RefundId:
+      name: refund_id
+      in: path
+      required: true
+      schema:
+        type: string
+    CommentId:
+      name: comment_id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Validation error or invalid financial state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not allowed to perform this action
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Friendly, domain-specific message. Never a stack trace.
+
+    Role:
+      type: string
+      enum: [admin, user]
+
+    Theme:
+      type: string
+      enum: [light, dark]
+
+    Money:
+      type: string
+      description: Decimal amount with exactly two decimal places.
+      pattern: '^\d+\.\d{2}$'
+      example: "123.45"
+
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - display_name
+        - role
+        - is_active
+        - must_change_password
+        - theme
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        display_name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        is_active:
+          type: boolean
+        must_change_password:
+          type: boolean
+        theme:
+          $ref: "#/components/schemas/Theme"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SetupRequest:
+      type: object
+      required: [username, display_name, password]
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, access_token, token_type]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [bearer]
+
+    ChangePasswordRequest:
+      type: object
+      required: [old_password, new_password]
+      properties:
+        old_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+
+    CreateUserRequest:
+      type: object
+      required: [username, display_name, temporary_password]
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        temporary_password:
+          type: string
+          minLength: 8
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+
+    ResetPasswordRequest:
+      type: object
+      required: [new_temporary_password]
+      properties:
+        new_temporary_password:
+          type: string
+          minLength: 8
+
+    GroupStatus:
+      type: string
+      enum: [active, archived]
+
+    Group:
+      type: object
+      required: [id, name, member_ids, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        member_ids:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/GroupStatus"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateGroupRequest:
+      type: object
+      required: [name, member_ids]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        member_ids:
+          type: array
+          items:
+            type: string
+
+    UpdateGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Category:
+      type: object
+      required: [id, name, group_id, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        group_id:
+          type: string
+          nullable: true
+          description: null means a global category.
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        group_id:
+          type: string
+          nullable: true
+
+    Payer:
+      type: object
+      required: [user_id, amount]
+      properties:
+        user_id:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+
+    Share:
+      type: object
+      required: [user_id, amount]
+      properties:
+        user_id:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+
+    Expense:
+      type: object
+      required:
+        - id
+        - group_id
+        - title
+        - amount
+        - expense_date
+        - category_id
+        - tags
+        - created_by
+        - payers
+        - participant_ids
+        - shares
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        group_id:
+          type: string
+        title:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        expense_date:
+          type: string
+          format: date
+        category_id:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+        payers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payer"
+        participant_ids:
+          type: array
+          items:
+            type: string
+        shares:
+          type: array
+          items:
+            $ref: "#/components/schemas/Share"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ExpenseInput:
+      type: object
+      required:
+        - group_id
+        - title
+        - amount
+        - expense_date
+        - payers
+        - participant_ids
+      properties:
+        group_id:
+          type: string
+        title:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        expense_date:
+          type: string
+          format: date
+        category_id:
+          type: string
+          nullable: true
+        note:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          default: []
+        payers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payer"
+          description: Amounts must sum exactly to `amount`.
+        participant_ids:
+          type: array
+          items:
+            type: string
+          description: Equal shares are computed by the server.
+
+    ExpenseUpdate:
+      type: object
+      description: All fields optional; only provided fields are changed.
+      properties:
+        title:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        expense_date:
+          type: string
+          format: date
+        category_id:
+          type: string
+          nullable: true
+        note:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        payers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payer"
+        participant_ids:
+          type: array
+          items:
+            type: string
+
+    ExpensePage:
+      type: object
+      required: [items, next_cursor, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
+        next_cursor:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+
+    SettlementStatus:
+      type: string
+      enum:
+        - pending
+        - confirmed
+        - rejected
+        - cancelled
+        - reversal_pending
+        - reversed
+
+    Settlement:
+      type: object
+      required:
+        - id
+        - payer_id
+        - recipient_id
+        - amount
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        payer_id:
+          type: string
+        recipient_id:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        note:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/SettlementStatus"
+        reversal_requested_by:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateSettlementRequest:
+      type: object
+      required: [payer_id, recipient_id, amount]
+      properties:
+        payer_id:
+          type: string
+        recipient_id:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        note:
+          type: string
+
+    UpdateSettlementRequest:
+      type: object
+      properties:
+        amount:
+          $ref: "#/components/schemas/Money"
+        note:
+          type: string
+
+    RefundStatus:
+      type: string
+      enum: [pending, confirmed]
+
+    RefundConfirmation:
+      type: object
+      required: [user_id, confirmed]
+      properties:
+        user_id:
+          type: string
+        confirmed:
+          type: boolean
+
+    Refund:
+      type: object
+      required:
+        - id
+        - group_id
+        - title
+        - amount
+        - participant_ids
+        - created_by
+        - status
+        - confirmations
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        group_id:
+          type: string
+        title:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        participant_ids:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+        status:
+          $ref: "#/components/schemas/RefundStatus"
+        confirmations:
+          type: array
+          items:
+            $ref: "#/components/schemas/RefundConfirmation"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateRefundRequest:
+      type: object
+      required: [group_id, title, amount, participant_ids]
+      properties:
+        group_id:
+          type: string
+        title:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        participant_ids:
+          type: array
+          items:
+            type: string
+
+    TransactionType:
+      type: string
+      enum: [expense, settlement, refund]
+
+    Comment:
+      type: object
+      required:
+        - id
+        - transaction_type
+        - transaction_id
+        - author_id
+        - body
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        transaction_type:
+          $ref: "#/components/schemas/TransactionType"
+        transaction_id:
+          type: string
+        author_id:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PairBalance:
+      type: object
+      required: [from_user_id, to_user_id, amount]
+      properties:
+        from_user_id:
+          type: string
+          description: The user who owes.
+        to_user_id:
+          type: string
+          description: The user who is owed.
+        amount:
+          $ref: "#/components/schemas/Money"
+
+    BalanceView:
+      type: object
+      required: [net, pairs]
+      properties:
+        net:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Money"
+          description: Net position per user id. Positive means owed money.
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PairBalance"
+
+    GroupBalances:
+      type: object
+      required: [group_id, net, pairs]
+      properties:
+        group_id:
+          type: string
+        net:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Money"
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PairBalance"
+
+    GlobalBalances:
+      type: object
+      required: [current, confirmed]
+      properties:
+        current:
+          allOf:
+            - $ref: "#/components/schemas/BalanceView"
+          description: Includes confirmed activity plus pending settlements.
+        confirmed:
+          allOf:
+            - $ref: "#/components/schemas/BalanceView"
+          description: Excludes pending settlements, refunds, and reversals.
+
+    AdminOverview:
+      type: object
+      required:
+        - users_count
+        - active_users_count
+        - groups_count
+        - active_groups_count
+        - pending_settlements_count
+        - pending_refunds_count
+        - expenses_count
+      properties:
+        users_count:
+          type: integer
+        active_users_count:
+          type: integer
+        groups_count:
+          type: integer
+        active_groups_count:
+          type: integer
+        pending_settlements_count:
+          type: integer
+        pending_refunds_count:
+          type: integer
+        expenses_count:
+          type: integer

@@ -4,7 +4,7 @@ Split expenses. Settle balances.
 
 Balancio is a general-purpose shared expense splitter for friends, households, couples, trips, and other small groups. It supports users and groups, expenses with multiple payers and equal splits, group and global balance tracking, simplified settlement suggestions, settlements, and refunds.
 
-See [`_docs/specs.md`](_docs/specs.md) for the full product and implementation specification.
+See [`_docs/specs.md`](_docs/specs.md) for the full product and implementation specification, and [`openapi.yaml`](openapi.yaml) for the REST API contract.
 
 ## Prerequisites
 

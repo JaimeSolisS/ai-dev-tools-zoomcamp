@@ -6,6 +6,7 @@ Commands
 - `cd backend && uv run pytest tests/test_balances.py` - one test file
 - `cd backend && uv run ruff check .` - lint
 - `cd backend && uv run ruff format .` - format
+- `cd backend && uv run mypy app/` - type-check
 - `cd frontend && npm install` - install frontend dependencies
 - `cd frontend && npm run dev` - run the frontend locally
 - `cd frontend && npm test` - frontend component tests
