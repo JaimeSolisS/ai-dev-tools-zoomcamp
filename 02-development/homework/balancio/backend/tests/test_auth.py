@@ -3,6 +3,22 @@ from fastapi.testclient import TestClient
 from tests.conftest import auth_headers, create_user, default_password, login_as
 
 
+class TestSetupStatus:
+    def test_reports_no_admin_before_setup(self, client: TestClient):
+        response = client.get("/api/v1/auth/setup-status")
+        assert response.status_code == 200
+        assert response.json() == {"admin_exists": False}
+
+    def test_reports_admin_exists_after_setup(self, client: TestClient, admin_token: str):
+        response = client.get("/api/v1/auth/setup-status")
+        assert response.status_code == 200
+        assert response.json() == {"admin_exists": True}
+
+    def test_does_not_require_authentication(self, client: TestClient):
+        response = client.get("/api/v1/auth/setup-status")
+        assert response.status_code == 200
+
+
 class TestSetup:
     def test_creates_first_admin_and_logs_in(self, client: TestClient):
         response = client.post(

@@ -9,12 +9,23 @@ from app.dependencies import get_app_settings, get_current_user, get_repos
 from app.errors import bad_request, conflict, unauthorized
 from app.models.domain import Role, Theme, User
 from app.repositories.bundle import Repositories
-from app.schemas.auth import AuthResponse, ChangePasswordRequest, LoginRequest, SetupRequest
+from app.schemas.auth import (
+    AuthResponse,
+    ChangePasswordRequest,
+    LoginRequest,
+    SetupRequest,
+    SetupStatus,
+)
 from app.schemas.users import UserOut
 from app.security import create_access_token, hash_password, verify_password
 from app.services.identity import new_id
 
 router = APIRouter(prefix="/auth")
+
+
+@router.get("/setup-status", response_model=SetupStatus)
+def setup_status(repos: Repositories = Depends(get_repos)) -> SetupStatus:
+    return SetupStatus(admin_exists=repos.users.any_admin())
 
 
 @router.post("/setup", response_model=AuthResponse, status_code=201)

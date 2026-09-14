@@ -24,6 +24,22 @@ security:
   - bearerAuth: []
 
 paths:
+  /auth/setup-status:
+    get:
+      tags: [auth]
+      summary: Check whether the first admin account has been created yet
+      description: >
+        Used by the frontend to decide whether to show the initial setup
+        screen or the login screen.
+      security: []
+      responses:
+        "200":
+          description: Setup status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupStatus"
+
   /auth/setup:
     post:
       tags: [auth]
@@ -1248,6 +1264,13 @@ components:
           type: string
           format: date-time
 
+    SetupStatus:
+      type: object
+      required: [admin_exists]
+      properties:
+        admin_exists:
+          type: boolean
+
     SetupRequest:
       type: object
       required: [username, display_name, password]
@@ -1308,6 +1331,8 @@ components:
       properties:
         display_name:
           type: string
+        theme:
+          $ref: "#/components/schemas/Theme"
 
     ResetPasswordRequest:
       type: object

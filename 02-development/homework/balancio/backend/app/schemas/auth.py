@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field
 from app.schemas.users import UserOut
 
 
+class SetupStatus(BaseModel):
+    admin_exists: bool
+
+
 class SetupRequest(BaseModel):
     username: str
     display_name: str

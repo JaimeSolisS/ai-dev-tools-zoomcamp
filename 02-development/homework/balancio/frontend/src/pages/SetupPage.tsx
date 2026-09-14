@@ -17,8 +17,8 @@ export function SetupPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.hasAdmin().then((exists) => {
-      if (exists) navigate("/login", { replace: true });
+    api.getSetupStatus().then(({ admin_exists }) => {
+      if (admin_exists) navigate("/login", { replace: true });
     });
   }, [navigate]);
 

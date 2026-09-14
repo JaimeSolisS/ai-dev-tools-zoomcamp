@@ -32,7 +32,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(next);
     if (user) {
       api
-        .updateMyTheme(next)
+        .updateMyTheme(user.id, next)
         .then(setUser)
         .catch(() => {
           /* theme preference is best-effort */

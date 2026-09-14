@@ -45,6 +45,13 @@ npm install
 npm run dev
 ```
 
+The frontend talks to the backend over HTTP at the URL in `VITE_API_BASE_URL`
+(see `frontend/.env.example`), defaulting to `http://localhost:8000/api/v1`
+when unset — i.e. the backend's default `fastapi dev` address. Start the
+backend first (or alongside) so the frontend has something to talk to; CORS
+is preconfigured on the backend for the frontend's dev origin
+(`http://localhost:5173`).
+
 ## Running tests
 
 ```bash
