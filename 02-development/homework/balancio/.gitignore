@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# uv
+backend/.python-version
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.local
+!.env.example
+
+# Data
+backend/data/balancio.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
