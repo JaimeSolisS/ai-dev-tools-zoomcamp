@@ -23,6 +23,7 @@ dist/
 # Data
 backend/data/balancio.db
 balancio.json
+backend/data/*
 
 # Editor / OS
 .vscode/
@@ -31,3 +32,5 @@ balancio.json
 
 # Logs
 *.log
+
+backend/scripts

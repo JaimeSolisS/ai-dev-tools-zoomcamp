@@ -6,6 +6,16 @@ Balancio is a general-purpose shared expense splitter for friends, households, c
 
 See [`_docs/specs.md`](_docs/specs.md) for the full product and implementation specification, and [`openapi.yaml`](openapi.yaml) for the REST API contract.
 
+## Screenshots
+
+| Dashboard                                                                                                                | Group detail                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| ![Dashboard showing current and confirmed balances, suggested settlements, and recent expenses](../../img/dashboard.png) | ![Group page showing the balance breakdown, members, and expense list](../../img/group.png) |
+
+| Settlements                                                                                                                 | Admin overview                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| ![Settlements page for recording payments and confirming, rejecting, or reversing existing ones](../../img/settlements.png) | ![Admin overview with system stats, pending settlements, and pending refunds](../../img/admin.png) |
+
 ## Prerequisites
 
 - Python 3.11+
