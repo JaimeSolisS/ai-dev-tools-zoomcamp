@@ -49,7 +49,7 @@ Create a new GitHub repository (or a folder in the repository you used for Homew
 
 Commit and push. What's the sha1 hash for this commit?
 
-**Answer: 0f40ed0\***
+**Answer: 0f40ed0**
 
 ```prompt
 read _docs/specs.md and create .gitignore and README.md. Also create AGENTS.md with content similar to this, adapted to what specs.md says:
