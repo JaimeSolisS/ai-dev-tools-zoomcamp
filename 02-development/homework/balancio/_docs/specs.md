@@ -29,8 +29,8 @@ The MVP should make it easy to:
 - FastAPI
 - Pydantic for request, response, and persisted-data validation
 - JWT authentication
-- JSON-file persistence for the MVP
-- Repository abstraction so persistence can later be replaced by PostgreSQL, MySQL, or another database without rewriting business rules
+- SQLAlchemy + SQLite persistence for the MVP
+- Repository abstraction so the database engine can later be swapped for PostgreSQL, MySQL, or another SQLAlchemy-supported database (via `DATABASE_URL`) without rewriting business rules
 - `ruff` for linting/formatting
 - Python type checking
 
@@ -979,7 +979,7 @@ backend/
 │   └── services/
 │       └── balance_calculator.py
 ├── data/
-│   └── balancio.json
+│   └── balancio.db
 └── tests/
 ```
 
@@ -1010,16 +1010,16 @@ class ExpenseRepository(Protocol):
     def delete(self, expense_id: str) -> None: ...
 ```
 
-Initial implementation:
+Initial implementation (SQLAlchemy-backed, SQLite by default):
 
 ```text
-JsonExpenseRepository
-JsonUserRepository
-JsonGroupRepository
+ExpenseRepository
+UserRepository
+GroupRepository
 ...
 ```
 
-Later implementations might be:
+Later implementations might target a different SQLAlchemy-supported database:
 
 ```text
 SqlAlchemyExpenseRepository
@@ -1031,57 +1031,39 @@ Business rules must not depend on JSON-specific behavior.
 
 ---
 
-## 28. JSON Persistence
+## 28. Database Persistence
 
-Mock development data should survive backend restarts.
+Development data should survive backend restarts.
 
-Use a local JSON file such as:
+Use a local SQLite database file such as:
 
 ```text
-backend/data/balancio.json
+backend/data/balancio.db
 ```
 
-Pydantic validates data when loading and writing.
+accessed through SQLAlchemy, configured via the `DATABASE_URL` environment
+variable so a different SQLAlchemy-supported database can be swapped in
+later without code changes.
 
-Recommended top-level shape:
-
-```json
-{
-  "users": [],
-  "groups": [],
-  "categories": [],
-  "expenses": [],
-  "settlements": [],
-  "refunds": [],
-  "comments": []
-}
-```
+Each major entity (`users`, `groups`, `categories`, `expenses`,
+`settlements`, `refunds`, `comments`) maps to its own table. Small embedded
+value objects that never need independent querying (e.g. an expense's
+`payers`/`shares`, a refund's `confirmations`, or plain id/tag lists) may be
+stored as JSON columns on the owning row rather than normalized into their
+own tables.
 
 Requirements:
 
-- Atomic writes where practical.
-- Avoid partially written files.
-- Validate before persistence.
-- Store timestamps in ISO 8601.
-- Store money in a safe representation.
-
-Recommended money representation in persistence:
-
-```json
-{
-  "amount": "123.45"
-}
-```
-
-Alternatively integer minor units may be used internally:
-
-```json
-{
-  "amount_cents": 12345
-}
-```
-
-Whichever representation is chosen must be used consistently.
+- Business logic must interact only with the repository interfaces
+  (`app/repositories/base.py`), never with SQLAlchemy sessions or ORM models
+  directly, so persistence can change again later without touching business
+  logic.
+- Pydantic validates data at the domain-model boundary (both when it enters
+  the repository layer and when it's read back out).
+- Store timestamps in UTC.
+- Store money using a safe, cent-accurate representation: numeric columns
+  must use `Decimal`-backed types (never binary float), so values always
+  reconcile to the cent.
 
 ---
 
@@ -1539,7 +1521,7 @@ APP_NAME=Balancio
 APP_CURRENCY=MXN
 JWT_SECRET=change-me
 JWT_EXPIRATION_HOURS=8
-DATA_FILE=./data/balancio.json
+DATABASE_URL=sqlite:///./data/balancio.db
 ENVIRONMENT=development
 ```
 
@@ -1593,7 +1575,7 @@ The following should **not** be built for the initial MVP:
 - Docker
 - CI pipelines
 - Production deployment
-- Real database
+- A production database server (Postgres/MySQL) - SQLite via SQLAlchemy is the MVP database
 - Payment-provider integration
 - Bank synchronization
 - Automatic payment execution

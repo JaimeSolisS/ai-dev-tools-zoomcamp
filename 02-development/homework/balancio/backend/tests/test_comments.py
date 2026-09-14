@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.repositories.bundle import build_repositories
 from tests.conftest import auth_headers, create_user, default_password, login_as
 
 
@@ -70,9 +71,7 @@ class TestCreateComment:
         )
         assert response.status_code == 422
 
-    def test_comment_on_settlement_by_participant(
-        self, client: TestClient, admin_headers: dict[str, str]
-    ):
+    def test_comment_on_settlement_by_participant(self, client: TestClient, admin_headers: dict[str, str]):
         a = create_user(client, admin_headers, "a")
         b = create_user(client, admin_headers, "b")
         a_token = login_as(client, "a", default_password("a"))
@@ -198,9 +197,7 @@ class TestEditDeleteComment:
         remaining = client.get(f"/api/v1/expense/{expense['id']}/comments", headers=auth_headers(ana_token))
         assert remaining.json() == []
 
-    def test_deleting_expense_cascades_its_comments(
-        self, client: TestClient, admin_headers: dict[str, str], app
-    ):
+    def test_deleting_expense_cascades_its_comments(self, client: TestClient, admin_headers: dict[str, str]):
         ana = create_user(client, admin_headers, "ana")
         group = make_group(client, admin_headers, "Home", [ana["id"]])
         ana_token = login_as(client, "ana", default_password("ana"))
@@ -211,4 +208,12 @@ class TestEditDeleteComment:
             headers=auth_headers(ana_token),
         )
         client.delete(f"/api/v1/expenses/{expense['id']}", headers=auth_headers(ana_token))
-        assert app.state.store.read("comments") == []
+
+        # The comment's transaction no longer exists, so its former thread
+        # is unreachable via the API - assert the comment was actually
+        # removed from persistence rather than just orphaned, via a direct
+        # repository read (the same abstraction routes use).
+        session_factory = client.app.state.session_factory
+        with session_factory() as session:
+            repos = build_repositories(session)
+            assert repos.comments.list() == []

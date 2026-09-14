@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session
+
 from app.repositories.entities import (
     CategoryRepository,
     CommentRepository,
@@ -11,7 +13,6 @@ from app.repositories.entities import (
     SettlementRepository,
     UserRepository,
 )
-from app.repositories.store import JsonStore
 
 
 @dataclass
@@ -25,13 +26,13 @@ class Repositories:
     comments: CommentRepository
 
 
-def build_repositories(store: JsonStore) -> Repositories:
+def build_repositories(session: Session) -> Repositories:
     return Repositories(
-        users=UserRepository(store),
-        groups=GroupRepository(store),
-        categories=CategoryRepository(store),
-        expenses=ExpenseRepository(store),
-        settlements=SettlementRepository(store),
-        refunds=RefundRepository(store),
-        comments=CommentRepository(store),
+        users=UserRepository(session),
+        groups=GroupRepository(session),
+        categories=CategoryRepository(session),
+        expenses=ExpenseRepository(session),
+        settlements=SettlementRepository(session),
+        refunds=RefundRepository(session),
+        comments=CommentRepository(session),
     )

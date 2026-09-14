@@ -31,11 +31,11 @@ APP_NAME=Balancio
 APP_CURRENCY=MXN
 JWT_SECRET=change-me
 JWT_EXPIRATION_HOURS=8
-DATA_FILE=./data/balancio.json
+DATABASE_URL=sqlite:///./data/balancio.db
 ENVIRONMENT=development
 ```
 
-Data persists to a local JSON file (`backend/data/balancio.json`) across restarts. No database server is required for the MVP.
+Data persists to a local SQLite database (`backend/data/balancio.db`), accessed via SQLAlchemy through a repository abstraction, across restarts. No database server is required for the MVP; `DATABASE_URL` can later point at Postgres/MySQL/etc. without touching business logic.
 
 ## Frontend setup
 

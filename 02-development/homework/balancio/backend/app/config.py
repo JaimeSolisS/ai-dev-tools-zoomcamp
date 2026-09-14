@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_currency: str = "MXN"
     jwt_secret: str = "change-me"
     jwt_expiration_hours: int = 8
-    data_file: str = "./data/balancio.json"
+    database_url: str = "sqlite:///./data/balancio.db"
     environment: str = "development"
 
 

@@ -1,21 +1,25 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from fastapi import Depends, Header, Request
+from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import forbidden, unauthorized
 from app.models.domain import Role, User
 from app.repositories.bundle import Repositories, build_repositories
-from app.repositories.store import JsonStore
 from app.security import decode_access_token
 
 
-def get_store(request: Request) -> JsonStore:
-    return request.app.state.store  # type: ignore[no-any-return]
+def get_session(request: Request) -> Iterator[Session]:
+    session_factory = request.app.state.session_factory
+    with session_factory() as session:
+        yield session
 
 
-def get_repos(store: JsonStore = Depends(get_store)) -> Repositories:
-    return build_repositories(store)
+def get_repos(session: Session = Depends(get_session)) -> Repositories:
+    return build_repositories(session)
 
 
 def get_app_settings(request: Request) -> Settings:

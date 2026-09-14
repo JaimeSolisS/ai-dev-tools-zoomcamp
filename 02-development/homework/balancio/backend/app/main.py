@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import Engine
 
 from app.config import Settings, get_settings
 from app.errors import AppError
-from app.repositories.store import JsonStore
+from app.repositories.database import create_engine_for_url, create_session_factory, init_db
 from app.routes import (
     admin,
     auth,
@@ -24,10 +27,19 @@ from app.routes import (
 API_PREFIX = "/api/v1"
 
 
-def create_app(store: JsonStore | None = None, settings: Settings | None = None) -> FastAPI:
+def create_app(engine: Engine | None = None, settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title=settings.app_name)
-    app.state.store = store or JsonStore(settings.data_file)
+
+    if engine is None:
+        if settings.database_url.startswith("sqlite:///") and settings.database_url != "sqlite:///:memory:":
+            db_path = Path(settings.database_url.removeprefix("sqlite:///"))
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+        engine = create_engine_for_url(settings.database_url)
+    init_db(engine)
+
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine)
     app.state.settings = settings
 
     app.add_middleware(
@@ -53,9 +65,7 @@ def create_app(store: JsonStore | None = None, settings: Settings | None = None)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
-        return JSONResponse(
-            status_code=500, content={"message": "Something went wrong. Please try again."}
-        )
+        return JSONResponse(status_code=500, content={"message": "Something went wrong. Please try again."})
 
     app.include_router(auth.router, prefix=API_PREFIX, tags=["auth"])
     app.include_router(users.router, prefix=API_PREFIX, tags=["users"])

@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from app.models.domain import CollectionName
-from app.repositories.store import JsonStore
+from app.repositories.database import Base
 
 
 class Repository[T: BaseModel](Protocol):
     """Interface every entity repository conforms to.
 
-    Business logic depends only on this shape, never on `JsonStore` -
-    a future `SqlAlchemyExpenseRepository` etc. can implement the same
-    methods without any route or service code changing.
+    Business logic depends only on this shape, never on SQLAlchemy or any
+    other storage detail - a future repository backed by a different
+    database can implement the same methods without any route or service
+    code changing.
     """
 
     def list(self) -> list[T]: ...
@@ -23,39 +24,55 @@ class Repository[T: BaseModel](Protocol):
     def delete(self, entity_id: str) -> None: ...
 
 
-class JsonRepository[T: BaseModel]:
-    """Generic JSON-file-backed implementation of `Repository[T]`."""
+class SqlAlchemyRepository[T: BaseModel]:
+    """Generic SQLAlchemy-backed implementation of `Repository[T]`.
 
-    def __init__(self, store: JsonStore, collection: CollectionName, model: type[T]) -> None:
-        self._store = store
-        self._collection = collection
-        self._model = model
+    Subclasses only need to say which ORM model backs them and how to
+    convert between the domain (Pydantic) model and the ORM row - the CRUD
+    mechanics are shared.
+    """
+
+    orm_model: type[Base]
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def _to_domain(self, row: Any) -> T:
+        raise NotImplementedError
+
+    def _to_orm_values(self, entity: T) -> dict[str, Any]:
+        raise NotImplementedError
 
     def list(self) -> list[T]:
-        return [self._model.model_validate(item) for item in self._store.read(self._collection)]
+        rows = (
+            self._session.query(self.orm_model)
+            .order_by(self.orm_model.created_at, self.orm_model.id)  # type: ignore[attr-defined]
+            .all()
+        )
+        return [self._to_domain(row) for row in rows]
 
     def get(self, entity_id: str) -> T | None:
-        for entity in self.list():
-            if entity.id == entity_id:  # type: ignore[attr-defined]
-                return entity
-        return None
+        row = self._session.get(self.orm_model, entity_id)
+        return self._to_domain(row) if row is not None else None
 
     def create(self, entity: T) -> T:
-        items = self._store.read(self._collection)
-        items.append(entity.model_dump(mode="json"))
-        self._store.write(self._collection, items)
+        row = self.orm_model(**self._to_orm_values(entity))
+        self._session.add(row)
+        self._session.commit()
         return entity
 
     def update(self, entity: T) -> T:
-        items = self._store.read(self._collection)
         entity_id = entity.id  # type: ignore[attr-defined]
-        for index, item in enumerate(items):
-            if item["id"] == entity_id:
-                items[index] = entity.model_dump(mode="json")
-                self._store.write(self._collection, items)
-                return entity
-        raise KeyError(entity_id)
+        row = self._session.get(self.orm_model, entity_id)
+        if row is None:
+            raise KeyError(entity_id)
+        for field, value in self._to_orm_values(entity).items():
+            setattr(row, field, value)
+        self._session.commit()
+        return entity
 
     def delete(self, entity_id: str) -> None:
-        items = [item for item in self._store.read(self._collection) if item["id"] != entity_id]
-        self._store.write(self._collection, items)
+        row = self._session.get(self.orm_model, entity_id)
+        if row is not None:
+            self._session.delete(row)
+            self._session.commit()

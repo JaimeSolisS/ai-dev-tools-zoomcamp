@@ -20,10 +20,15 @@ Rules
 - Frontend dependencies are added in `frontend/package.json`. Do not add one
   without asking. Do not introduce Redux, Zustand, or TanStack Query for the
   MVP.
-- Do not add Docker, CI configuration, or a real database. JSON-file
-  persistence via the repository abstraction is the MVP persistence layer.
+- Do not add Docker or CI configuration.
+- Persistence is SQLAlchemy + SQLite (`backend/data/balancio.db`) via the
+  repository abstraction (`backend/app/repositories/`). The database engine
+  is configured through `DATABASE_URL`; do not hardcode a specific dialect
+  outside of `app/repositories/database.py`.
 - Business logic (especially balance calculation) must not depend on
-  JSON-specific behavior, so it can later be swapped for a real database.
+  SQLAlchemy or ORM-specific behavior - it must only see plain domain
+  (Pydantic) models via the repository interfaces, so persistence can
+  change again later without touching business logic.
 - All monetary calculations must use decimal arithmetic, never binary
   floating point, and must always reconcile to the cent.
 - See `_docs/specs.md` for the full product and implementation specification.

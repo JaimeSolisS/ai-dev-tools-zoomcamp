@@ -8,9 +8,10 @@ spec.
 
 - FastAPI + Pydantic v2
 - JWT auth (PyJWT), PBKDF2 password hashing (stdlib `hashlib`, no native deps)
-- A mock database: one JSON file (`data/balancio.json`) behind a repository
-  abstraction (`app/repositories/`), so it can be swapped for a real database
-  later without touching route or service code
+- SQLAlchemy + SQLite (`data/balancio.db`) behind a repository abstraction
+  (`app/repositories/`), so the database engine can change (via
+  `DATABASE_URL`, e.g. to Postgres or MySQL) without touching route or
+  service code
 - `uv` for dependency and environment management
 
 ## Setup
@@ -35,8 +36,8 @@ uv run pytest              # whole suite
 uv run pytest tests/test_balance_calculator.py   # one file
 ```
 
-Tests never touch the real `data/balancio.json` - each test gets a fresh,
-isolated `JsonStore` pointed at a `tmp_path` file (see `tests/conftest.py`).
+Tests never touch the real `data/balancio.db` - each test gets a fresh,
+isolated in-memory SQLite database (see `tests/conftest.py`).
 
 ## Lint & type-check
 
@@ -56,7 +57,7 @@ app/
 ├── errors.py          # AppError -> friendly {"message": ...} responses
 ├── models/domain.py   # Persisted entity models (Pydantic)
 ├── schemas/           # Request/response DTOs per domain area
-├── repositories/       # Repository abstraction + JSON-backed implementation
+├── repositories/       # Repository abstraction + SQLAlchemy-backed implementation
 ├── services/
 │   ├── balance_calculator.py  # The balance engine (pure functions)
 │   └── identity.py    # ID generation

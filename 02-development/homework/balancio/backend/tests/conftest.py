@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -9,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
-from app.repositories.store import JsonStore
+from app.repositories.database import create_engine_for_url
 
 
 @pytest.fixture
@@ -20,9 +19,9 @@ def settings() -> Settings:
 
 
 @pytest.fixture
-def app(tmp_path: Path, settings: Settings) -> FastAPI:
-    store = JsonStore(tmp_path / "balancio.json")
-    return create_app(store=store, settings=settings)
+def app(settings: Settings) -> FastAPI:
+    engine = create_engine_for_url("sqlite:///:memory:", in_memory=True)
+    return create_app(engine=engine, settings=settings)
 
 
 @pytest.fixture
