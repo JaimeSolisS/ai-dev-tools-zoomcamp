@@ -23,6 +23,8 @@ Which description matches the project's architecture?
 - Agents consume tasks from a message broker.
 - The browser stores and executes tasks.
 
+**Answer: Agents claim tasks from a DB through an HTTP API.**
+
 ## Question 2: Register agents and test the task flow
 
 Ask your coding agent to read `SPEC.md` (in the starter repo root) and try its first acceptance scenario with your local Agent Relay:
@@ -37,6 +39,8 @@ Which task status does the sender see after the recipient submits its result?
 - `processing`
 - `completed`
 - `delivered`
+
+**Answer: Completed**
 
 ## Question 3: Containerization
 
