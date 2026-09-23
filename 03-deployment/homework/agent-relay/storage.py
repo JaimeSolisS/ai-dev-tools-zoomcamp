@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import (
@@ -104,24 +105,35 @@ def list_agents(limit: int, cursor: tuple[datetime, str] | None) -> tuple[list[A
 
 
 def create_task(sender_id: str, recipient_id: str, input_text: str, idempotency_key: str | None) -> dict[str, str]:
-    # Serializing task creation makes the sender-scoped idempotency check and
-    # unique constraint one operation even when two API processes race.
+    # The pre-check below is the fast path; the unique constraint on
+    # (sender_id, idempotency_key) is the actual guarantee. On SQLite,
+    # BEGIN IMMEDIATE already serializes concurrent callers so the
+    # constraint never fires here. On PostgreSQL, two callers can race past
+    # the pre-check together, so the insert runs in a savepoint and a unique
+    # violation is treated the same as finding the row up front.
     with immediate_transaction() as db:
         recipient = db.get(Agent, recipient_id)
         if recipient is None:
             raise RelayError("not_found", "Recipient agent not found.", 404)
-        if idempotency_key is not None:
-            existing = db.scalar(
-                select(Task).where(Task.sender_id == sender_id, Task.idempotency_key == idempotency_key)
-            )
-            if existing is not None:
-                if existing.recipient_id != recipient_id or existing.input != input_text:
-                    raise RelayError(
-                        "idempotency_conflict",
-                        "This Idempotency-Key was already used with a different task.",
-                        409,
-                    )
-                return {"task_id": existing.id, "status": existing.status}
+
+        def existing_task() -> Task | None:
+            if idempotency_key is None:
+                return None
+            return db.scalar(select(Task).where(Task.sender_id == sender_id, Task.idempotency_key == idempotency_key))
+
+        def resolve(existing: Task) -> dict[str, str]:
+            if existing.recipient_id != recipient_id or existing.input != input_text:
+                raise RelayError(
+                    "idempotency_conflict",
+                    "This Idempotency-Key was already used with a different task.",
+                    409,
+                )
+            return {"task_id": existing.id, "status": existing.status}
+
+        existing = existing_task()
+        if existing is not None:
+            return resolve(existing)
+
         task = Task(
             id=new_id("task"),
             sender_id=sender_id,
@@ -136,7 +148,14 @@ def create_task(sender_id: str, recipient_id: str, input_text: str, idempotency_
             finished_at=None,
         )
         db.add(task)
-        db.flush()
+        try:
+            with db.begin_nested():
+                db.flush()
+        except IntegrityError:
+            existing = existing_task()
+            if existing is None:
+                raise
+            return resolve(existing)
         return {"task_id": task.id, "status": task.status}
 
 
@@ -149,6 +168,7 @@ def claim_one(agent_id: str, worker_id: str | None) -> dict[str, Any] | None:
             .where(Task.recipient_id == agent_id, Task.status == "queued")
             .order_by(Task.created_at, Task.id)
             .limit(1)
+            .with_for_update(skip_locked=True)
         )
         if task is None:
             return None
@@ -189,13 +209,15 @@ def claim_one(agent_id: str, worker_id: str | None) -> dict[str, Any] | None:
 
 def _find_attempt_for_token(db: Session, task_id: str, token: str) -> Attempt | None:
     return db.scalar(
-        select(Attempt).where(Attempt.task_id == task_id, Attempt.claim_token_hash == secret_hash(token))
+        select(Attempt)
+        .where(Attempt.task_id == task_id, Attempt.claim_token_hash == secret_hash(token))
+        .with_for_update()
     )
 
 
 def heartbeat(task_id: str, agent_id: str, claim_token: str) -> str:
     with immediate_transaction() as db:
-        task = db.get(Task, task_id)
+        task = db.get(Task, task_id, with_for_update=True)
         if task is None or task.recipient_id != agent_id:
             raise RelayError("not_found", "Task not found.", 404)
         attempt = _find_attempt_for_token(db, task_id, claim_token)
@@ -222,7 +244,7 @@ def commit_terminal(
     value: str,
 ) -> dict[str, str]:
     with immediate_transaction() as db:
-        task = db.get(Task, task_id)
+        task = db.get(Task, task_id, with_for_update=True)
         if task is None or task.recipient_id != agent_id:
             raise RelayError("not_found", "Task not found.", 404)
         attempt = _find_attempt_for_token(db, task_id, claim_token)

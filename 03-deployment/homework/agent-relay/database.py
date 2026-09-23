@@ -177,19 +177,21 @@ def db_session() -> Generator[Session, None, None]:
 
 @contextmanager
 def immediate_transaction() -> Generator[Session, None, None]:
-    """Run one SQLite writer transaction before selecting or changing work.
+    """Run one writer transaction before selecting or changing work.
 
-    SQLite does not support PostgreSQL's ``FOR UPDATE SKIP LOCKED``.  A
-    ``BEGIN IMMEDIATE`` writer reservation serializes claims (and recovery or
-    terminal submissions) across API processes, giving each task one active
-    lease.  This is the intentionally isolated seam for a future PostgreSQL
-    implementation.
+    SQLite has no ``FOR UPDATE SKIP LOCKED``, so a ``BEGIN IMMEDIATE`` writer
+    reservation serializes claims (and recovery or terminal submissions)
+    across API processes, giving each task one active lease. PostgreSQL
+    provides real row locking, so on that engine this is a plain transaction
+    and callers instead take out row locks with ``with_for_update()``
+    (``skip_locked=True`` when claiming) on the specific rows they touch.
     """
 
     connection = engine.connect()
     session = Session(bind=connection, expire_on_commit=False, autoflush=True)
     try:
-        connection.exec_driver_sql("BEGIN IMMEDIATE")
+        if _is_sqlite(DATABASE_URL):
+            connection.exec_driver_sql("BEGIN IMMEDIATE")
         yield session
         session.flush()
         connection.commit()
@@ -210,11 +212,12 @@ def recover_expired_in_session(db: Session, now: datetime) -> int:
             select(Attempt)
             .where(Attempt.outcome == "processing", Attempt.lease_expires_at <= now_db)
             .order_by(Attempt.lease_expires_at, Attempt.id)
+            .with_for_update()
         )
     )
     count = 0
     for attempt in expired:
-        task = db.get(Task, attempt.task_id)
+        task = db.get(Task, attempt.task_id, with_for_update=True)
         if task is None or attempt.outcome != "processing":
             continue
         attempt.outcome = "expired"

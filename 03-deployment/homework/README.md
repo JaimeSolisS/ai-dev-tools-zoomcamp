@@ -78,6 +78,8 @@ Which hostname should the API use to connect to the `postgres` service in Docker
 - `host.docker.internal`
 - `0.0.0.0`
 
+**Answer: postgress**
+
 ## Question 5: Deploy to Kubernetes
 
 Ask your coding agent to install [kind](https://kind.sigs.k8s.io/) and kubectl if needed, then create a local Kubernetes cluster.
