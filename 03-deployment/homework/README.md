@@ -57,6 +57,8 @@ Which Docker option publishes a container's port to your machine?
 - `-v`
 - `--name`
 
+**Answer: -p**
+
 ## Question 4: Docker Compose and PostgreSQL
 
 Ask your coding agent to replace SQLite with PostgreSQL and create a `compose.yaml` that runs Agent Relay and PostgreSQL together. Name the database service `postgres`.
