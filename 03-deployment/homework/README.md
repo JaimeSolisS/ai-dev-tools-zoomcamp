@@ -114,6 +114,8 @@ What should happen if a test fails in this workflow?
 - Delete the existing deployment.
 - Deploy the previous image with the new tag.
 
+**Answer: Keep the existing version running and stop the deployment.**
+
 ## Submission
 
 Submit your homework on the [course platform](https://courses.datatalks.club/ai-dev-tools-2026/homework/hw3).

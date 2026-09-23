@@ -117,3 +117,30 @@ running tests against another database.
 
 This starter intentionally does not include Kubernetes, CI, or an LLM. Those
 are deployment concerns rather than part of the local relay protocol.
+
+## CI/CD (GitHub Actions, run locally with act)
+
+`.github/workflows/ci.yml` has two jobs:
+
+1. **test** – runs `test_agent_relay.py` on SQLite and again on a PostgreSQL
+   service container, then starts the API against PostgreSQL and runs
+   `test_integration_scenario1.py` over HTTP. A skipped integration test counts
+   as a failure.
+2. **build-and-deploy** (`needs: test`, so it runs only if the tests pass) –
+   builds `agent-relay:<sha>-<utc timestamp>-<run id>`, loads it into the kind
+   cluster with `kind load docker-image`, applies `k8s/` with that image in
+   place of `agent-relay:local`, and waits on `kubectl rollout status`.
+
+Run it locally with [act](https://nektosact.com/) (`brew install act`):
+
+```bash
+./scripts/ci-local.sh
+```
+
+The script passes the kind kubeconfig to act as the `KUBECONFIG_DATA` secret
+(base64). `.actrc` selects the runner image and mounts the host Docker socket
+(`/var/run/docker.sock`, which works with Docker Desktop) into job containers.
+act runs jobs on the Docker host network, so a job can reach the kind API
+server at the same `127.0.0.1:<port>` address as your kubeconfig and can reach
+the PostgreSQL service at `localhost:5432`. `KIND_VERSION` in the workflow must
+match the kind release that created the cluster (`kind version`).
