@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-relay-api
+  labels:
+    app: agent-relay-api
+spec:
+  selector:
+    app: agent-relay-api
+  ports:
+    - port: 8000
+      targetPort: 8000

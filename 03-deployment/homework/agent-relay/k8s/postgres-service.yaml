@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Service name is the hostname the API uses to reach PostgreSQL
+  # (same as the "postgres" service name in compose.yaml).
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

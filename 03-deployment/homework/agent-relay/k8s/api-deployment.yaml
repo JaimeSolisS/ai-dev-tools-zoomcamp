@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-relay-api
+  labels:
+    app: agent-relay-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-relay-api
+  template:
+    metadata:
+      labels:
+        app: agent-relay-api
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h postgres -p 5432 -U relay; do echo waiting for postgres; sleep 2; done
+      containers:
+        - name: api
+          # Loaded into kind with `kind load docker-image agent-relay:local --name agent-relay`;
+          # IfNotPresent avoids kubelet trying (and failing) to pull it from a registry.
+          image: agent-relay:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: RELAY_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: RELAY_DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3

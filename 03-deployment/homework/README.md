@@ -88,12 +88,16 @@ Create manifests in `k8s/` for Agent Relay and PostgreSQL, including Services, p
 
 Check that the pods are ready. Open the dashboard through port forwarding and verify the task flow from Question 2.
 
+install kind and kubectl if needed, then create a local Kubernetes cluster. Create manifests in k8s/ for Agent Relay and PostgreSQL, including Services, persistent DB storage, and readiness checks. Load the Docker image into kind and deploy the application. Check that the pods are ready. Open the dashboard through port forwarding and verify the task flow from Question 2.
+
 Which Kubernetes resource keeps the requested number of application replicas running and manages updates?
 
 - Service
 - ConfigMap
 - Deployment
 - Secret
+
+**Answer: Deployment**
 
 ## Question 6: CI/CD
 
