@@ -144,3 +144,30 @@ regularly commit code to git
 ```
 
 This is only the starting point and it will change as your project grows.
+
+## OpenAPI Specifications
+
+When creating frontend, we asked the AI assistant to put everything in a centralized service layer. Later we will replace it with actual calls to backend.
+
+But now we should define the specification - the agreement between frontend and backend. We will use OpenAPI for that.
+
+This specification gives explicit information about the endpoints, paths, request bodies, response bodies, and authentication rules.
+
+<p align="center">
+  <img width="80%" src="img/frontend.png" alt="AI Dev Tools Zoomcamp Cover Image">
+  <p align="center">OpenAPI is the explicit contract shared by the frontend and backend</p>
+</p>
+
+Let’s create it:
+
+```
+Read the frontend's API client in frontend/
+
+Create openapi.yaml at the repository root.
+
+Specify the backend this frontend expects: every endpoint, method, path, request body, response body, and which endpoints need authentication.
+```
+
+You can skip this step. But I wouldn’t recommend it.
+
+It takes a few minutes, but has many benefits. The backend gets a precise target instead of being inferred from frontend code. Not only we save tokens this way, but also get a clear picture of what exactly the backend needs.
