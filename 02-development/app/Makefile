@@ -2,11 +2,11 @@
 
 FRONTEND := frontend
 BACKEND  := backend
-BACKEND_PORT  ?= 8000
+BACKEND_PORT  ?= 8091
 FRONTEND_PORT ?= 5173
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-frontend install-backend dev frontend backend \
+.PHONY: help install install-frontend install-backend run dev frontend backend \
         test test-frontend test-backend lint build clean
 
 help: ## Show this help
@@ -20,13 +20,15 @@ install-frontend: ## Install frontend dependencies (npm)
 install-backend: ## Install backend dependencies (uv)
 	cd $(BACKEND) && uv sync
 
+run: backend ## Run the backend (same as `make backend`)
+
 dev: ## Run backend and frontend together (Ctrl+C stops both)
 	@$(MAKE) --no-print-directory -j2 backend frontend
 
 frontend: ## Run the frontend dev server (http://localhost:5173)
 	cd $(FRONTEND) && npm run dev -- --port $(FRONTEND_PORT)
 
-backend: ## Run the backend with auto-reload (http://localhost:8000/docs)
+backend: ## Run the backend with auto-reload (http://localhost:8091/docs)
 	cd $(BACKEND) && uv run uvicorn app.main:app --reload --port $(BACKEND_PORT)
 
 test: test-backend test-frontend ## Run all tests

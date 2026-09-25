@@ -10,7 +10,7 @@ export * from './types';
 
 /** Build the backend selected by environment variables (mock by default). */
 export function createBackend(env: ImportMetaEnv = import.meta.env): BackendService {
-  if (env.VITE_BACKEND === 'http') return createHttpBackend(env.VITE_API_BASE_URL ?? 'http://localhost:8000');
+  if (env.VITE_BACKEND === 'http') return createHttpBackend(env.VITE_API_BASE_URL ?? 'http://localhost:8091');
   return createMockBackend({
     serverStorage: window.localStorage,
     browserStorage: window.localStorage,

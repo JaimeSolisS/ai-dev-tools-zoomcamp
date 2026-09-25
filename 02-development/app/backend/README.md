@@ -8,7 +8,7 @@ a restart resets everything.
 
 ```bash
 uv sync
-uv run uvicorn app.main:app --reload     # http://localhost:8000  (Swagger UI at /docs)
+uv run uvicorn app.main:app --reload --port 8091   # http://localhost:8091  (Swagger UI at /docs)
 uv run pytest                            # tests
 uv run ruff check . && uv run ruff format --check .
 ```
