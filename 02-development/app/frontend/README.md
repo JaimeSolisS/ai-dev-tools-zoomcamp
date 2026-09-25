@@ -4,27 +4,47 @@ A React + TypeScript frontend for live system-design interviews, built from
 [`../_docs/spec.md`](../_docs/spec.md). An interviewer creates a session and shares a link.
 Candidates join and draw on a shared real-time canvas. The finished canvas is saved for review.
 
-The app runs with **no backend**. Every backend call goes through a single services layer,
-and a mock implementation of that layer runs entirely in the browser.
+Every backend call goes through a single services layer. By default it talks to the real
+backend in [`../backend`](../backend) (REST and WebSocket, as specified in
+[`../openapi.yaml`](../openapi.yaml)). A mock implementation of the same layer can run the
+whole app in the browser with no server.
 
 ## Run it
 
+From `app/`, `make dev` starts the backend (http://localhost:8091) and the frontend
+(http://localhost:5173) together. To run only the frontend:
+
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173, expects the backend on :8091
 npm test           # unit, integration and UI tests (Vitest + Testing Library)
 npm run build      # type-check and production build
 ```
 
+Configure it through environment variables (copy `.env.example` to `.env.local`):
+
+| Variable               | Default                 | Meaning                                                            |
+|------------------------|-------------------------|--------------------------------------------------------------------|
+| `VITE_BACKEND`         | `http`                  | `http` uses the real backend; `mock` uses the in-browser mock      |
+| `VITE_API_BASE_URL`    | `http://localhost:8091` | Where the backend runs                                             |
+| `VITE_MOCK_LATENCY_MS` | `120`                   | Simulated latency for the mock                                     |
+
+To run without a backend: `VITE_BACKEND=mock npm run dev`.
+
 ### Try a live interview
 
-1. Sign in with any email. The mock shows an **Open sign-in link** button instead of sending an email.
-2. Open the example session or create a new one. Click **Share**, then **Create candidate link**.
-3. Paste the link into **another tab** and join as the candidate. Each tab is its own participant,
-   and tabs sync through `BroadcastChannel`. Cursors, selections, edits, locking and ending all
-   propagate between tabs.
+1. Sign in as `ada@example.com`, one of the backend's demo accounts. In development the backend
+   doesn't send email, so the page shows an **Open sign-in link** button instead.
+2. Open "Design a chat app" (live) or create a new interview. Click **Share**, then
+   **Create candidate link**.
+3. Paste the link into **another tab** and join as the candidate. Each tab keeps its own guest
+   credential, so it acts as a separate participant. Cursors, selections, edits, locking and
+   ending all sync through the backend's WebSocket.
 4. To test reconnects, use DevTools → Network → *Offline*. Edits you make while offline are
    queued and sync when the connection comes back.
+
+The backend keeps its data in memory, so restarting it resets everything. The frontend notices
+that its saved sign-in token is no longer valid and returns you to the login page.
 
 ## Architecture
 
@@ -41,8 +61,9 @@ src/
       db.ts, storage.ts      "tables" in localStorage (or in-memory for tests)
       bus.ts                 BroadcastChannel / in-process message bus
       seed.ts                example session for new users
-    http/httpBackend.ts      placeholder for the real REST + WebSocket client
-    index.ts                 createBackend(): picks mock or http from VITE_BACKEND
+    http/httpBackend.ts      real client: fetch for REST, WebSocket with reconnect/backoff
+    network.ts               online/offline detection (shared by both implementations)
+    index.ts                 createBackend(): http by default, mock with VITE_BACKEND=mock
     ServiceProvider.tsx      React context → useBackend()
   canvas/                    pure, framework-free canvas logic
     model.ts                 LWW element-map CRDT, Lamport clock, undo/redo, clipboard
@@ -53,9 +74,13 @@ src/
   components/, pages/        UI
 ```
 
-Components never call `fetch` or open sockets themselves. They call `useBackend()`. To plug in
-the real backend, implement `BackendService` in `services/http/` and set `VITE_BACKEND=http`
-(see `.env.example`). Nothing else changes.
+Components never call `fetch` or open sockets themselves. They call `useBackend()`, so switching
+between the mock and the real backend changes nothing else.
+
+The HTTP client keeps the interviewer's access token in `localStorage` and sends it as
+`Authorization: Bearer …`. It keeps guest credentials per session in `sessionStorage` and sends
+them as `X-Guest-Credential`. `make test-integration` (from `app/`) runs the client against a
+freshly started backend.
 
 ### How the mock behaves like a real backend
 
@@ -103,5 +128,5 @@ Implemented:
 - **Keyboard access:** Tab through canvas objects; move them with the arrow keys; Enter to
   relabel; connect via "Connect to…" in the properties panel.
 
-Not done yet: organisation SSO, PNG/PDF export, the optional laser pointer, and the real
-backend.
+Not done yet: organisation SSO, PNG/PDF export, the optional laser pointer, and a
+password field on the login page (the backend supports `POST /v1/auth/login`).

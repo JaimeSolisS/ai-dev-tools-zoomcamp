@@ -602,6 +602,7 @@ textarea {
 
 .badge {
   display: inline-block;
+  white-space: nowrap;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 2px 8px;

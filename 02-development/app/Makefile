@@ -7,7 +7,7 @@ FRONTEND_PORT ?= 5173
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-frontend install-backend run dev frontend backend \
-        test test-frontend test-backend lint build clean
+        test test-frontend test-backend test-integration lint build clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -38,6 +38,15 @@ test-frontend: ## Run frontend tests (Vitest)
 
 test-backend: ## Run backend tests (pytest)
 	cd $(BACKEND) && uv run pytest
+
+INTEGRATION_PORT ?= 8092
+
+test-integration: ## Run the frontend's HTTP client against a freshly started backend
+	@cd $(BACKEND) && uv sync -q
+	@$(BACKEND)/.venv/bin/uvicorn --app-dir $(BACKEND) app.main:app --port $(INTEGRATION_PORT) > /dev/null 2>&1 & pid=$$!; \
+	trap "kill $$pid 2>/dev/null" EXIT; \
+	for i in $$(seq 1 50); do curl -sf http://localhost:$(INTEGRATION_PORT)/docs > /dev/null && break; sleep 0.2; done; \
+	cd $(FRONTEND) && ARCHBOARD_API_URL=http://localhost:$(INTEGRATION_PORT) npx vitest run src/services/http/httpBackend.integration.test.ts
 
 lint: ## Type-check the frontend, lint and format-check the backend
 	cd $(FRONTEND) && npm run typecheck
