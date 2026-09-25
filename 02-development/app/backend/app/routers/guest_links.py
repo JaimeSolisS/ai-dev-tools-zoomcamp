@@ -12,7 +12,9 @@ async def list_guest_links(session_id: str, user: CurrentUser, store: StoreDep):
 
 
 @router.post("", response_model=CreatedGuestLink, status_code=201)
-async def create_guest_link(session_id: str, user: CurrentUser, store: StoreDep, body: CreateGuestLinkInput | None = None):
+async def create_guest_link(
+    session_id: str, user: CurrentUser, store: StoreDep, body: CreateGuestLinkInput | None = None
+):
     link, token = store.create_link(user, session_id, body or CreateGuestLinkInput())
     return CreatedGuestLink(link=GuestLink(**link.model_dump()), token=token)
 

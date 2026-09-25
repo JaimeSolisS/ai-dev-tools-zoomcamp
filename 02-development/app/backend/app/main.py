@@ -10,6 +10,8 @@ from .routers import auth, canvas, guest_links, join, participants, realtime, se
 from .seed import seed
 from .store import Store
 
+ROUTER_MODULES = (auth, sessions, participants, guest_links, join, canvas, realtime)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
@@ -30,7 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-Guest-Credential"],
     )
     install_error_handlers(app)
-    for module in (auth, sessions, participants, guest_links, join, canvas, realtime):
+    for module in ROUTER_MODULES:
         app.include_router(module.router)
     return app
 

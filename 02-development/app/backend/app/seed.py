@@ -150,7 +150,10 @@ def seed(store: Store) -> None:
     chat = store.insert_session(
         ada,
         title="Design a chat app",
-        prompt="1:1 and group chat for 50M daily active users.\n\n• Message delivery < 200 ms\n• Offline sync\n• Read receipts",
+        prompt=(
+            "1:1 and group chat for 50M daily active users.\n\n"
+            "• Message delivery < 200 ms\n• Offline sync\n• Read receipts"
+        ),
         state="live",
         duration_minutes=60,
         started_at=now - timedelta(minutes=12),

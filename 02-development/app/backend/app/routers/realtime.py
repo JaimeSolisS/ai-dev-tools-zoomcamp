@@ -110,7 +110,9 @@ async def connect_realtime(
     hub.register(conn)
     sender = asyncio.create_task(pump(conn))
     store.mark_seen(participant.id)
-    hub.send(conn, {"type": "room_joined", "participantId": participant.id, "cursor": store.ensure_canvas(session_id).cursor})
+    hub.send(
+        conn, {"type": "room_joined", "participantId": participant.id, "cursor": store.ensure_canvas(session_id).cursor}
+    )
     try:
         while True:
             text = await websocket.receive_text()

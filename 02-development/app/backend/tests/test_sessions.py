@@ -126,7 +126,11 @@ def test_invited_interviewer_can_lock_but_not_manage(client, store, interview):
 def test_duplicate_copies_prompt_and_canvas_into_a_new_draft(client, owner, store):
     session = create_session(client, owner, prompt="P", durationMinutes=30)
     client.post(f"/v1/sessions/{session['id']}/start", headers=owner)
-    store.canvases[session["id"]].elements["el_1"] = {"id": "el_1", "deleted": True, "version": {"clock": 1, "actor": "a"}}
+    store.canvases[session["id"]].elements["el_1"] = {
+        "id": "el_1",
+        "deleted": True,
+        "version": {"clock": 1, "actor": "a"},
+    }
     copy = client.post(f"/v1/sessions/{session['id']}/duplicate", headers=owner)
     assert copy.status_code == 201
     body = copy.json()

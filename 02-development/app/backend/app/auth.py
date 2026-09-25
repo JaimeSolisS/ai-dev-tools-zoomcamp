@@ -17,7 +17,6 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 from .errors import ApiError
 from .store import ParticipantRecord, Store, UserRecord
 
-
 bearer_scheme = HTTPBearer(auto_error=False, scheme_name="userAuth")
 guest_scheme = APIKeyHeader(name="X-Guest-Credential", auto_error=False, scheme_name="guestAuth")
 

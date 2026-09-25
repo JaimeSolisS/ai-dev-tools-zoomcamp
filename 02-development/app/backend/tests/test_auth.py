@@ -1,6 +1,7 @@
+from fastapi.testclient import TestClient
+
 from app.config import Settings
 from app.main import create_app
-from fastapi.testclient import TestClient
 
 from .conftest import PASSWORD, assert_error, bearer, sign_up
 

@@ -11,9 +11,10 @@ nothing about sockets.
 """
 
 from collections import deque
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 from uuid import uuid4
 
 from pydantic import Field
@@ -55,6 +56,11 @@ def new_id(prefix: str) -> str:
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def newest_first[T](items: Iterable[T], key: Callable[[T], Any]) -> list[T]:
+    """Sort descending by key; on ties the most recently inserted item comes first."""
+    return list(reversed(sorted(items, key=key)))
 
 
 # ------------------------------------------------------------------ records --
@@ -150,7 +156,7 @@ class Store:
         self.snapshots: dict[str, SnapshotRecord] = {}
         self.audit_log: list[AuditEvent] = []
         # Hook for new users (the seed module installs "create an example session").
-        self.on_user_created: Callable[["Store", UserRecord], None] | None = None
+        self.on_user_created: Callable[[Store, UserRecord], None] | None = None
 
     # ------------------------------------------------------------- helpers --
 
@@ -278,22 +284,19 @@ class Store:
 
     def list_sessions(self, user: User) -> list[SessionSummary]:
         invited = {p.session_id for p in self.participants.values() if p.user_id == user.id and not p.removed_at}
-        summaries = [
-            self.summarize(s) for s in self.sessions.values() if s.owner_user_id == user.id or s.id in invited
-        ]
-        return sorted(summaries, key=lambda s: s.last_modified_at, reverse=True)
+        summaries = [self.summarize(s) for s in self.sessions.values() if s.owner_user_id == user.id or s.id in invited]
+        return newest_first(summaries, key=lambda s: s.last_modified_at)
 
     def summarize(self, session: InterviewSession) -> SessionSummary:
         participants = [p for p in self.participants.values() if p.session_id == session.id and not p.removed_at]
         record = self.canvases.get(session.id)
-        active = sorted(
+        active = newest_first(
             (
                 link
                 for link in self.guest_links.values()
                 if link.session_id == session.id and link.role_granted == "candidate" and self._link_active(link)
             ),
             key=lambda link: link.created_at,
-            reverse=True,
         )
         last_modified = max(session.updated_at, record.updated_at) if record else session.updated_at
         return SessionSummary(
@@ -338,6 +341,7 @@ class Store:
             updated_at=now,
         )
         self.sessions[session.id] = session
+        self.add_participant(session.id, owner.id, owner.display_name, "owner", None)
         return session
 
     def update_session(
@@ -464,7 +468,11 @@ class Store:
         if participant is None:
             return
         now = self.now()
-        if not left and participant.last_seen_at and (now - participant.last_seen_at).total_seconds() < LAST_SEEN_WRITE_SECONDS:
+        if (
+            not left
+            and participant.last_seen_at
+            and (now - participant.last_seen_at).total_seconds() < LAST_SEEN_WRITE_SECONDS
+        ):
             return
         self.participants[participant_id] = participant.model_copy(
             update={"last_seen_at": now, "left_at": now if left else None}
@@ -494,7 +502,7 @@ class Store:
     def list_links(self, user: User, session_id: str) -> list[GuestLinkRecord]:
         self.require_owner(user, session_id)
         links = [link for link in self.guest_links.values() if link.session_id == session_id]
-        return sorted(links, key=lambda link: link.created_at, reverse=True)
+        return newest_first(links, key=lambda link: link.created_at)
 
     def create_link(
         self, user: User, session_id: str, data: CreateGuestLinkInput, token: str | None = None
@@ -588,9 +596,7 @@ class Store:
 
         self._assert_joinable(link, session, returning=False)
         if self._active_participant_count(session.id) >= self.settings.max_participants:
-            raise ApiError(
-                "SESSION_FULL", f"This interview already has {self.settings.max_participants} participants."
-            )
+            raise ApiError("SESSION_FULL", f"This interview already has {self.settings.max_participants} participants.")
         credential = new_token()
         linked_user = user if link.role_granted in ("interviewer", "observer") else None
         participant = self.add_participant(
@@ -677,7 +683,7 @@ class Store:
     def list_snapshots(self, user: User, session_id: str) -> list[SnapshotRecord]:
         self.require_owner(user, session_id)
         snaps = [s for s in self.snapshots.values() if s.session_id == session_id]
-        return sorted(snaps, key=lambda s: s.created_at, reverse=True)
+        return newest_first(snaps, key=lambda s: s.created_at)
 
     def restore_snapshot(self, user: User, session_id: str, snapshot_id: str) -> None:
         self._require_open_owner(user, session_id)
@@ -702,7 +708,9 @@ class Store:
         perms = compute_permissions(participant.role, session.state, session.candidate_editing_enabled)
         if not perms.can_edit:
             if session.state in ("ended", "archived"):
-                return OperationResult(False, code="SESSION_ENDED", message="The interview has ended; the canvas is read-only.")
+                return OperationResult(
+                    False, code="SESSION_ENDED", message="The interview has ended; the canvas is read-only."
+                )
             if participant.role == "candidate" and session.state == "live":
                 return OperationResult(False, code="EDIT_LOCKED", message="The interviewer has locked editing.")
             return OperationResult(False, code="FORBIDDEN", message="You cannot edit this canvas.")
@@ -727,7 +735,11 @@ class Store:
             self.save_snapshot(session_id, "periodic")
         self.publish(
             session_id,
-            {"type": "document_update", "op": op.model_dump(mode="json", by_alias=True, exclude_unset=True), "cursor": record.cursor},
+            {
+                "type": "document_update",
+                "op": op.model_dump(mode="json", by_alias=True, exclude_unset=True),
+                "cursor": record.cursor,
+            },
             exclude=connection_id,
         )
         return OperationResult(True, cursor=record.cursor)

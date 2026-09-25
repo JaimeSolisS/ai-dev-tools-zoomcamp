@@ -20,9 +20,7 @@ class Settings:
     cors_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(
             o.strip()
-            for o in os.environ.get(
-                "ARCHBOARD_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-            ).split(",")
+            for o in os.environ.get("ARCHBOARD_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
             if o.strip()
         )
     )

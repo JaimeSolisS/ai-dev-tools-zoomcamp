@@ -20,7 +20,7 @@ info:
 
     | Scheme       | Who                          | How it is obtained                                   | Sent as                              |
     |--------------|------------------------------|------------------------------------------------------|--------------------------------------|
-    | `userAuth`   | Signed-in interviewers       | `POST /v1/auth/magic-link/verify` → `accessToken`    | `Authorization: Bearer <accessToken>`|
+    | `userAuth`   | Signed-in interviewers       | `POST /v1/auth/magic-link/verify` or `POST /v1/auth/login` → `accessToken` | `Authorization: Bearer <accessToken>`|
     | `guestAuth`  | People who joined via a link | `POST /v1/join/{token}` → `credential`               | `X-Guest-Credential: <credential>`   |
 
     A guest credential is scoped to exactly one session. When a request carries both
@@ -152,6 +152,30 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in with email and password
+      description: |
+        Alternative to the magic link for users who have a password (e.g. the seeded
+        demo accounts). Passwords are stored as salted scrypt hashes. Unknown emails,
+        wrong passwords and accounts without a password all get the same `401`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   /v1/auth/logout:
     post:
@@ -825,6 +849,13 @@ components:
       required: [token]
       properties:
         token: { type: string }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
 
     AuthResponse:
       type: object
