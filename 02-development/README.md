@@ -98,3 +98,49 @@ Next, save it to GitHub. If you use Lovable:
 - Select the plus icon in the bottom-left corner
 - Connect your GitHub account.
 - Lovable creates a private repository. I usually change it to public.
+
+## Move the Frontend into the Project
+
+Next, we can clone the repository locally.
+
+For the rest of the project, I want this setup:
+
+```
+/backend     # backend application and its tests
+/docs        # supporting documentation
+/frontend    # frontend application
+AGENTS.md    # instructions for coding agents
+openapi.yaml # API agreement
+```
+
+So let’s create these folders and move all the frontend stuff to “frontend”, and the specification we created to “/docs/spec.md”.
+
+After we re-arranged the files, commit the changes.
+
+At this point, you should also be able to run the application locally and test that things work the way you want. If they don’t, use a coding agent to fix it.
+
+To run the project:
+
+```
+cd frontend
+npm i
+npm run dev
+```
+
+## AGENTS.md
+
+We already discussed the importance of AGENTS.md in the first article.
+
+Let’s create one for this project too. Place it in the repository root:
+
+```
+for backend, use uv for dependency management. a few useful commands:
+
+uv sync
+uv add <PACKAGE-NAME>
+uv run python <PYTHON-FILE>
+
+regularly commit code to git
+```
+
+This is only the starting point and it will change as your project grows.
