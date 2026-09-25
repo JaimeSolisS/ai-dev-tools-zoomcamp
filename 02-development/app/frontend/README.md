@@ -43,8 +43,9 @@ To run without a backend: `VITE_BACKEND=mock npm run dev`.
 4. To test reconnects, use DevTools → Network → *Offline*. Edits you make while offline are
    queued and sync when the connection comes back.
 
-The backend keeps its data in memory, so restarting it resets everything. The frontend notices
-that its saved sign-in token is no longer valid and returns you to the login page.
+The backend stores its data in a database (SQLite by default), so it survives restarts. If you
+reset the database (`make reset-db`), the frontend notices that its saved sign-in token is no
+longer valid and returns you to the login page.
 
 ## Architecture
 

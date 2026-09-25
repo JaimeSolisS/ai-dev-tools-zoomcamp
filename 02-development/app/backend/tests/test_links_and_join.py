@@ -1,5 +1,9 @@
 from datetime import timedelta
 
+from sqlalchemy import select
+
+from app.tables import GuestLinkRow
+
 from .conftest import assert_error, create_link, create_session, guest, join
 
 
@@ -18,7 +22,8 @@ def test_created_link_returns_token_once_and_stores_only_a_hash(client, store, o
     assert body["link"]["roleGranted"] == "candidate" and body["link"]["uses"] == 0
     listed = client.get(f"/v1/sessions/{sid}/guest-links", headers=owner)
     assert body["token"] not in listed.text
-    assert all(body["token"] != link.token_hash for link in store.guest_links.values())
+    hashes = store.query(lambda s: list(s.db.scalars(select(GuestLinkRow.token_hash))))
+    assert hashes and body["token"] not in hashes
 
 
 def test_lobby_info_and_join(client, owner):
@@ -153,6 +158,6 @@ def test_removed_participants_lose_access(client, store, interview):
     )
     assert [p["role"] for p in client.get(url, headers=owner).json()] == ["owner"]
 
-    owner_participant = next(p for p in store.participants.values() if p.role == "owner")
+    owner_participant = next(p for p in store.list_participants(sid) if p.role == "owner")
     assert_error(client.delete(f"{url}/{owner_participant.id}", headers=owner), 422, "VALIDATION")
     assert_error(client.delete(f"{url}/nope", headers=owner), 404, "NOT_FOUND")

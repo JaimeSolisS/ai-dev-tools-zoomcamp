@@ -1,17 +1,17 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app import canvas
-from app.config import Settings
-from app.main import create_app
 from app.seed import DEMO_CANDIDATE_TOKEN, DEMO_PASSWORD
+from app.tables import CanvasElementRow
 
 from .conftest import bearer
 
 
 @pytest.fixture
-def seeded():
-    with TestClient(create_app(Settings(seed=True))) as client:
+def seeded(make_app):
+    with TestClient(make_app(seed=True)) as client:
         yield client
 
 
@@ -47,8 +47,8 @@ def test_demo_candidate_link_joins_the_live_interview(seeded):
 
 
 def test_seeded_canvas_elements_match_the_canvas_schema(seeded):
-    store = seeded.app.state.store
-    elements = [e for record in store.canvases.values() for e in record.elements.values()]
+    with seeded.app.state.store_context.store() as store:
+        elements = list(store.db.scalars(select(CanvasElementRow.data)))
     assert len(elements) > 20
     for element in elements:
         parsed = canvas.parse_operation(

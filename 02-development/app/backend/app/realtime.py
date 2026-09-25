@@ -1,11 +1,16 @@
 """WebSocket fan-out.
 
 `Hub` implements the store's `EventSink`: publishing puts an enveloped message on
-each connection's queue (synchronously), and a per-connection task writes the
-queue to the socket. Messages to one connection are therefore delivered in order.
+each connection's queue, and a per-connection task writes the queue to the
+socket, so messages to one connection are delivered in order.
+
+Requests run in FastAPI's threadpool, so `publish` may be called from any
+thread; it hands the work to the event loop with `call_soon_threadsafe`. Room
+bookkeeping itself only ever runs on the event loop.
 """
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
@@ -37,6 +42,24 @@ class Connection:
 class Hub:
     def __init__(self) -> None:
         self.rooms: dict[str, dict[str, Connection]] = {}
+        self.loop: asyncio.AbstractEventLoop | None = None
+
+    def bind(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Attach to the server's event loop (called at startup)."""
+        self.loop = loop
+
+    def _on_loop(self, fn: Callable[..., None], *args: Any) -> None:
+        loop = self.loop
+        if loop is None or loop.is_closed():
+            return  # no server running (e.g. scripts): nobody to notify
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if running is loop:
+            fn(*args)
+        else:
+            loop.call_soon_threadsafe(fn, *args)
 
     def register(self, conn: Connection) -> None:
         self.rooms.setdefault(conn.session_id, {})[conn.id] = conn
@@ -58,11 +81,17 @@ class Hub:
     # EventSink ---------------------------------------------------------------
 
     def publish(self, session_id: str, payload: dict[str, Any], exclude: str | None = None) -> None:
+        self._on_loop(self._publish, session_id, payload, exclude)
+
+    def disconnect_participant(self, session_id: str, participant_id: str) -> None:
+        self._on_loop(self._disconnect, session_id, participant_id)
+
+    def _publish(self, session_id: str, payload: dict[str, Any], exclude: str | None) -> None:
         for conn in self.connections(session_id):
             if conn.id != exclude:
                 self.send(conn, payload)
 
-    def disconnect_participant(self, session_id: str, participant_id: str) -> None:
+    def _disconnect(self, session_id: str, participant_id: str) -> None:
         for conn in self.connections(session_id):
             if conn.participant_id == participant_id:
                 conn.queue.put_nowait(None)

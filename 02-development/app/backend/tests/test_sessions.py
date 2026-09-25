@@ -82,7 +82,7 @@ def test_lifecycle_transitions(client, owner, store):
     archived = client.post(f"/v1/sessions/{sid}/archive", headers=owner).json()
     assert archived["state"] == "archived" and archived["endedAt"]
 
-    actions = [e.action for e in store.audit_log]
+    actions = [e.action for e in store.audit_log()]
     assert actions == [
         "session.created", "session.started", "session.ended", "session.reopened", "session.archived",
     ]  # fmt: skip
@@ -120,17 +120,16 @@ def test_invited_interviewer_can_lock_but_not_manage(client, store, interview):
     assert locked.status_code == 200 and locked.json()["candidateEditingEnabled"] is False
     assert_error(client.patch(f"/v1/sessions/{sid}", json={"prompt": "x"}, headers=colleague), 403, "FORBIDDEN")
     assert_error(client.post(f"/v1/sessions/{sid}/end", headers=colleague), 404, "NOT_FOUND")
-    assert [e.action for e in store.audit_log][-1] == "permissions.changed"
+    assert [e.action for e in store.audit_log()][-1] == "permissions.changed"
 
 
 def test_duplicate_copies_prompt_and_canvas_into_a_new_draft(client, owner, store):
     session = create_session(client, owner, prompt="P", durationMinutes=30)
     client.post(f"/v1/sessions/{session['id']}/start", headers=owner)
-    store.canvases[session["id"]].elements["el_1"] = {
-        "id": "el_1",
-        "deleted": True,
-        "version": {"clock": 1, "actor": "a"},
-    }
+    store.put_elements(
+        session["id"],
+        {"el_1": {"id": "el_1", "deleted": True, "version": {"clock": 1, "actor": "a"}}},
+    )
     copy = client.post(f"/v1/sessions/{session['id']}/duplicate", headers=owner)
     assert copy.status_code == 201
     body = copy.json()
@@ -142,7 +141,7 @@ def test_duplicate_copies_prompt_and_canvas_into_a_new_draft(client, owner, stor
 
 def test_create_from_template_requires_ownership(client, store, owner):
     template = create_session(client, owner, title="Template")
-    store.canvases[template["id"]].elements["x"] = {"id": "x", "deleted": True, "version": {"clock": 1, "actor": "a"}}
+    store.put_elements(template["id"], {"x": {"id": "x", "deleted": True, "version": {"clock": 1, "actor": "a"}}})
     created = create_session(client, owner, title="From template", templateSessionId=template["id"])
     assert list(client.get(f"/v1/sessions/{created['id']}/canvas", headers=owner).json()["canvas"]["elements"]) == ["x"]
     stranger = sign_up(client, store, "mallory@example.com")

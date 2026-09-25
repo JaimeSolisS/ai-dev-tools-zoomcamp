@@ -10,16 +10,17 @@ token `DEMO_CANDIDATE_TOKEN`, so a candidate can join at
 `http://localhost:5173/join/demo-candidate-link-for-the-chat-app-interview`.
 The token is intentionally predictable: it is only for local demos.
 
-New users created later (e.g. through a magic link) get their own copy of the
-example session, as described in openapi.yaml.
+Seeding only happens into an empty database (no users yet), so restarting the
+server keeps your data. New users created later (e.g. through a magic link) get
+their own copy of the example session, as described in openapi.yaml.
 """
 
 from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
-from .models import CreateGuestLinkInput, InterviewSession
-from .store import CanvasRecord, Store, UserRecord
+from .models import CreateGuestLinkInput, InterviewSession, User
+from .store import Store, StoreContext
 
 DEMO_PASSWORD = "password123"
 DEMO_CANDIDATE_TOKEN = "demo-candidate-link-for-the-chat-app-interview"
@@ -92,12 +93,10 @@ class _Diagram:
 
 
 def _put_canvas(store: Store, session: InterviewSession, elements: dict[str, dict[str, Any]]) -> None:
-    store.canvases[session.id] = CanvasRecord(
-        session_id=session.id, elements=elements, cursor=0, updated_at=session.updated_at
-    )
+    store.put_elements(session.id, elements)
 
 
-def create_example_session(store: Store, owner: UserRecord) -> InterviewSession:
+def create_example_session(store: Store, owner: User) -> InterviewSession:
     """An ended "URL shortener" interview with a finished diagram."""
     now = store.now()
     started = now - timedelta(minutes=42)
@@ -138,8 +137,17 @@ def create_example_session(store: Store, owner: UserRecord) -> InterviewSession:
     return session
 
 
+def seed_if_empty(ctx: StoreContext) -> bool:
+    """Seed the demo data unless the database already has users. Returns True if it seeded."""
+    with ctx.store() as store:
+        if store.has_users():
+            return False
+        seed(store)
+        return True
+
+
 def seed(store: Store) -> None:
-    """Load demo users and sessions, and give future users an example session."""
+    """Load demo users and sessions."""
     ada = store.create_user("ada@example.com", "Ada Lovelace", DEMO_PASSWORD)
     grace = store.create_user("grace@example.com", "Grace Hopper", DEMO_PASSWORD)
 
@@ -170,19 +178,14 @@ def seed(store: Store) -> None:
     d.shape("sticky", 260, 260, "How do we fan out to group members?", fill="#bfdbfe")
     _put_canvas(store, chat, d.elements)
     store.create_link(ada, chat.id, CreateGuestLinkInput(role_granted="candidate"), token=DEMO_CANDIDATE_TOKEN)
-    store.resolve_principal(chat.id, ada, None)  # creates Ada's owner participant
     store.add_participant(chat.id, None, "Linus Torvalds", "candidate", credential_hash=None)
 
-    limiter = store.insert_session(
+    store.insert_session(
         ada,
         title="Design a rate limiter",
         prompt="Distributed rate limiting for a public API (1M requests/second).",
         duration_minutes=45,
         scheduled_at=now + timedelta(days=1),
     )
-    store.ensure_canvas(limiter.id)
 
-    blank = store.insert_session(grace, title="Design a news feed", prompt="Ranked feed for a social network.")
-    store.ensure_canvas(blank.id)
-
-    store.on_user_created = create_example_session
+    store.insert_session(grace, title="Design a news feed", prompt="Ranked feed for a social network.")

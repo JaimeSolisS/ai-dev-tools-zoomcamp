@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
-from app.config import Settings
-from app.main import create_app
+from app.tables import AccessTokenRow, UserRow
 
 from .conftest import PASSWORD, assert_error, bearer, sign_up
 
@@ -31,9 +31,10 @@ def test_login_rejects_bad_credentials_with_the_same_error(client, store):
 def test_passwords_and_tokens_are_not_stored_in_plain_text(client, store):
     headers = sign_up(client, store)
     token = headers["Authorization"].removeprefix("Bearer ")
-    user = store.find_user_by_email("ada@example.com")
-    assert user.password_hash and PASSWORD not in user.password_hash
-    assert token not in store.access_tokens
+    row = store.query(lambda s: s.db.scalar(select(UserRow).where(UserRow.email == "ada@example.com")))
+    assert row.password_hash.startswith("scrypt$") and PASSWORD not in row.password_hash
+    stored_tokens = store.query(lambda s: list(s.db.scalars(select(AccessTokenRow.token_hash))))
+    assert stored_tokens and token not in stored_tokens
     assert "passwordHash" not in client.get("/v1/auth/me", headers=headers).text
 
 
@@ -56,7 +57,7 @@ def test_logout_revokes_the_token(client, store):
 def test_magic_link_flow_creates_user_with_example_session(client, store):
     from app.seed import create_example_session
 
-    store.on_user_created = create_example_session
+    store.ctx.on_user_created = create_example_session
     response = client.post("/v1/auth/magic-link", json={"email": "Grace@Example.com"})
     assert response.status_code == 200
     token = response.json()["devToken"]
@@ -84,7 +85,7 @@ def test_magic_link_for_existing_user_signs_them_in(client, store):
     token = client.post("/v1/auth/magic-link", json={"email": "ada@example.com"}).json()["devToken"]
     body = client.post("/v1/auth/magic-link/verify", json={"token": token}).json()
     assert body["user"]["id"] == store.find_user_by_email("ada@example.com").id
-    assert len(store.users) == 1
+    assert store.query(lambda s: s.db.scalar(select(func.count()).select_from(UserRow))) == 1
 
 
 def test_magic_link_validates_email(client):
@@ -94,7 +95,7 @@ def test_magic_link_validates_email(client):
     assert_error(client.post("/v1/auth/magic-link", json={}), 422, "VALIDATION")
 
 
-def test_dev_token_is_not_returned_outside_dev_mode():
-    with TestClient(create_app(Settings(seed=False, dev_mode=False))) as client:
+def test_dev_token_is_not_returned_outside_dev_mode(make_app):
+    with TestClient(make_app(dev_mode=False)) as client:
         response = client.post("/v1/auth/magic-link", json={"email": "a@b.co"})
         assert response.json() == {"sent": True}

@@ -103,6 +103,8 @@ export function useRoom(sessionId: string): RoomState {
   const presenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeId = useRef(0);
   const connectedOnce = useRef(false);
+  /** Operation cursor of the snapshot loaded by openRoom. */
+  const loadedCursor = useRef(0);
 
   const setDoc = useCallback((next: CanvasDoc) => {
     docRef.current = next;
@@ -167,6 +169,7 @@ export function useRoom(sessionId: string): RoomState {
       .openRoom(sessionId)
       .then((access) => {
         if (cancelled) return;
+        loadedCursor.current = access.cursor;
         clockRef.current = new LamportClock(access.me.id, maxClock(access.canvas));
         setDoc(access.canvas);
         setSessionState(access.session);
@@ -202,7 +205,9 @@ export function useRoom(sessionId: string): RoomState {
     function handleMessage(m: ServerMessage) {
       switch (m.type) {
         case 'room_joined':
-          if (connectedOnce.current) {
+          if (connectedOnce.current || m.cursor > loadedCursor.current) {
+            // Reconnected, or others edited between loading the snapshot and subscribing.
+            connectedOnce.current = true;
             void resync();
           } else {
             connectedOnce.current = true;

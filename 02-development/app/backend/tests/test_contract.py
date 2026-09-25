@@ -12,8 +12,7 @@ from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
-from app.config import Settings
-from app.main import ROUTER_MODULES, create_app
+from app.main import ROUTER_MODULES
 from app.seed import DEMO_CANDIDATE_TOKEN, DEMO_PASSWORD
 
 from .test_canvas import put, shape
@@ -106,8 +105,8 @@ for _name, _response in SPEC["components"]["responses"].items():
 
 
 @pytest.fixture
-def api():
-    with TestClient(create_app(Settings(seed=True, dev_mode=True))) as client:
+def api(make_app):
+    with TestClient(make_app(seed=True)) as client:
         yield SpecClient(client)
 
 

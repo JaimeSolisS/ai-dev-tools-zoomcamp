@@ -1,8 +1,9 @@
 # Archboard backend
 
 A FastAPI implementation of [`../openapi.yaml`](../openapi.yaml), the API that the frontend
-in `../frontend` expects. All state is kept in memory and loaded with demo data at startup, so
-a restart resets everything.
+in `../frontend` expects. Data is stored in a SQL database through SQLAlchemy: SQLite by
+default, chosen with `DATABASE_URL`. The code is database-agnostic, so other databases such as
+Postgres can be added.
 
 ## Run
 
@@ -12,6 +13,34 @@ uv run uvicorn app.main:app --reload --port 8091   # http://localhost:8091  (Swa
 uv run pytest                            # tests
 uv run ruff check . && uv run ruff format --check .
 ```
+
+### Database
+
+The server connects to the database named by `DATABASE_URL`, a
+[SQLAlchemy URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls):
+
+```bash
+# default: a SQLite file in the backend folder
+DATABASE_URL=sqlite:///./archboard.db uv run uvicorn app.main:app --reload --port 8091
+
+# another file
+DATABASE_URL=sqlite:////absolute/path/to/archboard.db make run
+```
+
+Missing tables are created at startup. The demo data is loaded only into an empty database,
+so your data survives restarts. `make reset-db` deletes the local SQLite file.
+
+**Adding another database (e.g. Postgres).** Tables use only portable column types, and all
+queries go through SQLAlchemy. Dialect-specific setup lives in `app/db.py` (for SQLite: foreign
+keys and WAL mode). To use Postgres, install a driver and point `DATABASE_URL` at it:
+
+```bash
+uv add "psycopg[binary]"
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/archboard make run
+```
+
+The test suite runs on SQLite. Before relying on another database in production, run the suite
+against it too, and add a migration tool (Alembic) in place of the `create_all` at startup.
 
 ### Demo data
 
@@ -28,8 +57,9 @@ Anyone who signs up later through a magic link gets their own copy of the exampl
 
 | Variable                 | Default                                        | Meaning                                                  |
 |--------------------------|------------------------------------------------|----------------------------------------------------------|
+| `DATABASE_URL`           | `sqlite:///./archboard.db`                     | SQLAlchemy URL of the database                           |
 | `ARCHBOARD_DEV`          | `true`                                         | Return magic-link tokens as `devToken` instead of emailing them |
-| `ARCHBOARD_SEED`         | `true`                                         | Load the demo data                                       |
+| `ARCHBOARD_SEED`         | `true`                                         | Load the demo data into an empty database                |
 | `ARCHBOARD_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173`  | Allowed browser origins                                  |
 
 ## Authentication
@@ -52,7 +82,9 @@ app/
   main.py          create_app(): wires the store, WebSocket hub, CORS, error handlers and routers
   config.py        settings from environment variables
   models.py        Pydantic request/response models (snake_case in Python, camelCase in JSON)
-  store.py         in-memory store and all domain rules (lifecycle, links, joins, permissions, canvas)
+  db.py            engine from DATABASE_URL, per-dialect setup, portable UTC datetime type
+  tables.py        SQLAlchemy ORM tables (follows the data model in _docs/spec.md §11)
+  store.py         domain rules on top of the database (lifecycle, links, joins, permissions, canvas)
   auth.py          FastAPI dependencies: CurrentUser, OptionalUser, Principal (user or guest per session)
   security.py      scrypt password hashing and token hashing
   permissions.py   permission matrix (spec §9), mirrors frontend/src/services/permissions.ts
@@ -64,9 +96,17 @@ app/
 tests/             pytest suite, including test_contract.py, which checks the app against openapi.yaml
 ```
 
-The store runs entirely on the event loop, and every route and dependency is `async`, so it
-needs no locking. The store emits room events through an `EventSink` interface, which
-`realtime.Hub` implements, so domain code never touches sockets.
+Each request gets one `Store`, which wraps one SQLAlchemy session and therefore one
+transaction. The transaction commits before the response is sent and rolls back on errors.
+WebSocket messages get a transaction each. Routes are plain `def` functions, so FastAPI runs
+them in its threadpool and database calls never block the event loop.
+
+Room events are buffered and sent through `realtime.Hub` only after the commit, so clients
+never refetch data that isn't saved yet. The hub is thread-safe.
+
+Canvas elements are stored one row each. Last-writer-wins is decided inside a single
+conditional `UPDATE`, and duplicate operations are rejected by a unique constraint on the
+operation log. Both stay correct when several writers hit the database at once.
 
 ## Tests
 
@@ -82,3 +122,8 @@ needs no locking. The store emits room events through an `EventSink` interface, 
   observers, presence, room events and forced disconnects.
 - `test_seed.py`: the demo accounts, the demo link, and a check that seeded canvases match the
   canvas schema.
+- `test_database.py`: data survives a restart, seeding happens only once, `DATABASE_URL` is
+  respected, SQLite settings, portable UTC datetimes, last-writer-wins and de-duplication in
+  SQL, events only after commit, rollback on failure, and concurrent writers.
+
+Every test runs against its own temporary SQLite file.

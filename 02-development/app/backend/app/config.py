@@ -3,6 +3,8 @@
 import os
 from dataclasses import dataclass, field
 
+from .db import DEFAULT_DATABASE_URL
+
 
 def _bool(name: str, default: bool) -> bool:
     value = os.environ.get(name)
@@ -13,9 +15,11 @@ def _bool(name: str, default: bool) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
+    # SQLAlchemy database URL, e.g. sqlite:///./archboard.db or postgresql+psycopg://user:pw@host/db
+    database_url: str = field(default_factory=lambda: os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL))
     # Development mode returns magic-link tokens in the API response (no email is sent).
     dev_mode: bool = field(default_factory=lambda: _bool("ARCHBOARD_DEV", True))
-    # Load demo users and sessions at startup.
+    # Load demo users and sessions at startup (only into an empty database).
     seed: bool = field(default_factory=lambda: _bool("ARCHBOARD_SEED", True))
     cors_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(
