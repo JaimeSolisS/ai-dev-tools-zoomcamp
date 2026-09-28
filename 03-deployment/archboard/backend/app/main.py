@@ -13,6 +13,7 @@ from .errors import install_error_handlers
 from .realtime import Hub
 from .routers import auth, canvas, guest_links, join, participants, realtime, sessions
 from .seed import create_example_session, seed_if_empty
+from .static import install_frontend
 from .store import StoreContext
 
 ROUTER_MODULES = (auth, sessions, participants, guest_links, join, canvas, realtime)
@@ -58,6 +59,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     for module in ROUTER_MODULES:
         app.include_router(module.router)
+    if settings.static_dir:
+        install_frontend(app, settings.static_dir)
     return app
 
 

@@ -61,6 +61,7 @@ Anyone who signs up later through a magic link gets their own copy of the exampl
 | `ARCHBOARD_DEV`          | `true`                                         | Return magic-link tokens as `devToken` instead of emailing them |
 | `ARCHBOARD_SEED`         | `true`                                         | Load the demo data into an empty database                |
 | `ARCHBOARD_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173`  | Allowed browser origins                                  |
+| `ARCHBOARD_STATIC_DIR`   | (unset)                                        | Built frontend folder to serve at `/` (used by the Docker image) |
 
 ## Authentication
 

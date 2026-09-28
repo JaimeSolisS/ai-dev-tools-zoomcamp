@@ -28,6 +28,8 @@ class Settings:
             if o.strip()
         )
     )
+    # Folder with the built frontend (index.html and assets). When set, the backend serves it at /.
+    static_dir: str | None = field(default_factory=lambda: os.environ.get("ARCHBOARD_STATIC_DIR") or None)
     magic_link_ttl_minutes: int = 15
     max_participants: int = 10
     # A participant counts as active for capacity checks if seen within this window.
