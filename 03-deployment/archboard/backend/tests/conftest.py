@@ -1,11 +1,15 @@
+import os
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 
 from app.config import Settings
 from app.main import create_app
@@ -51,13 +55,43 @@ class StoreProxy:
 
 
 @pytest.fixture
-def make_app(tmp_path: Path) -> Callable[..., FastAPI]:
-    """Build an app on a fresh SQLite file (or the same one again, to test restarts)."""
+def database_url(tmp_path: Path) -> Iterator[Callable[[str], str]]:
+    """Map a database name to a fresh, test-private database URL.
+
+    SQLite by default. Set TEST_DATABASE_URL (e.g. postgresql+psycopg://postgres:postgres@localhost/postgres)
+    to run against Postgres: each name gets its own database, dropped after the test.
+    """
+    server_url = os.environ.get("TEST_DATABASE_URL")
+    if not server_url:
+        yield lambda name: f"sqlite:///{tmp_path / name}"
+        return
+
+    admin = create_engine(server_url, isolation_level="AUTOCOMMIT")
+    created: dict[str, str] = {}
+
+    def url_for(name: str) -> str:
+        if name not in created:
+            db_name = f"archboard_test_{uuid4().hex}"
+            with admin.connect() as conn:
+                conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+            created[name] = make_url(server_url).set(database=db_name).render_as_string(hide_password=False)
+        return created[name]
+
+    yield url_for
+    with admin.connect() as conn:
+        for url in created.values():
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{make_url(url).database}" WITH (FORCE)'))
+    admin.dispose()
+
+
+@pytest.fixture
+def make_app(database_url: Callable[[str], str]) -> Callable[..., FastAPI]:
+    """Build an app on a fresh database (or the same one again, to test restarts)."""
 
     def build(db_name: str = "test.db", **settings: Any) -> FastAPI:
         settings.setdefault("seed", False)
         settings.setdefault("dev_mode", True)
-        return create_app(Settings(database_url=f"sqlite:///{tmp_path / db_name}", **settings))
+        return create_app(Settings(database_url=database_url(db_name), **settings))
 
     return build
 

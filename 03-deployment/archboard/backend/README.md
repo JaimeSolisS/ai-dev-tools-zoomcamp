@@ -2,8 +2,7 @@
 
 A FastAPI implementation of [`../openapi.yaml`](../openapi.yaml), the API that the frontend
 in `../frontend` expects. Data is stored in a SQL database through SQLAlchemy: SQLite by
-default, chosen with `DATABASE_URL`. The code is database-agnostic, so other databases such as
-Postgres can be added.
+default, or Postgres, chosen with `DATABASE_URL`.
 
 ## Run
 
@@ -30,17 +29,18 @@ DATABASE_URL=sqlite:////absolute/path/to/archboard.db make run
 Missing tables are created at startup. The demo data is loaded only into an empty database,
 so your data survives restarts. `make reset-db` deletes the local SQLite file.
 
-**Adding another database (e.g. Postgres).** Tables use only portable column types, and all
-queries go through SQLAlchemy. Dialect-specific setup lives in `app/db.py` (for SQLite: foreign
-keys and WAL mode). To use Postgres, install a driver and point `DATABASE_URL` at it:
+**Postgres.** The `psycopg` driver is a dependency. Point `DATABASE_URL` at an existing
+database; the tables are created on first start:
 
 ```bash
-uv add "psycopg[binary]"
-DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/archboard make run
+docker run -d --name archboard-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=archboard -p 5432:5432 postgres:17
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/archboard make run
 ```
 
-The test suite runs on SQLite. Before relying on another database in production, run the suite
-against it too, and add a migration tool (Alembic) in place of the `create_all` at startup.
+Tables use only portable column types, and all queries go through SQLAlchemy. Dialect-specific
+setup lives in `app/db.py` (for SQLite: foreign keys and WAL mode). Schema changes are not
+migrated yet: add a migration tool (Alembic) in place of the `create_all` at startup before
+changing tables on a database that holds real data.
 
 ### Demo data
 
@@ -127,4 +127,11 @@ operation log. Both stay correct when several writers hit the database at once.
   respected, SQLite settings, portable UTC datetimes, last-writer-wins and de-duplication in
   SQL, events only after commit, rollback on failure, and concurrent writers.
 
-Every test runs against its own temporary SQLite file.
+Every test runs against its own temporary SQLite file. To run the suite on Postgres, set
+`TEST_DATABASE_URL` to a server the tests can create databases on (each test gets its own,
+dropped afterwards), or use `make test-backend-postgres` from the repo root, which starts a
+throwaway Postgres container:
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/postgres uv run pytest
+```
