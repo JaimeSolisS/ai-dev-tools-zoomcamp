@@ -1,0 +1,40 @@
+# Archboard with Postgres: the app image (backend + built frontend) and a database.
+#   docker compose up --build      # http://localhost:8091
+#   docker compose down            # stop (data is kept in the pgdata volume)
+#   docker compose down -v         # stop and delete the data
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: archboard
+      POSTGRES_USER: archboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-archboard}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h localhost: wait for the real server, not the init-time one on the Unix socket.
+      test: ["CMD", "pg_isready", "-U", "archboard", "-d", "archboard", "-h", "localhost"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://archboard:${POSTGRES_PASSWORD:-archboard}@db:5432/archboard
+    ports:
+      - "${APP_PORT:-8091}:8091"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  pgdata:
