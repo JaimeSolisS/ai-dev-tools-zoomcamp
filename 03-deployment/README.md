@@ -66,3 +66,34 @@ Open the application at localhost:8000 and test it:
 - Check that the interviewer sees the change
 
 We’ll repeat this test again. I’ll refer to it as the two-session test.
+
+## Switch from SQLite to Postgres
+
+SQLite is very convenient for local development. It keeps the data in a single file and doesn’t need a separate database server.
+
+But for production, we typically use Postgres or a similar database.
+
+When we set up the foundation in the previous article, we asked the coding agent to use SQLAlchemy.
+
+I did this on purpose because I knew that later I’d switch to Postgres.
+
+Start Postgres locally:
+
+```
+docker run -d \
+  --name interview-canvas-db \
+  -e POSTGRES_USER=sdip \
+  -e POSTGRES_PASSWORD=sdip \
+  -e POSTGRES_DB=sdip \
+  -p 5432:5432 \
+  -v interview-canvas-pgdata:/var/lib/postgresql/data \
+  postgres:16-alpine
+```
+
+Now we can ask the assistant to use it:
+
+```
+Add Postgres support to the backend.
+```
+
+When it’s done, repeat the two-session test.
