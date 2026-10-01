@@ -124,3 +124,47 @@ In our case, it runs the application at localhost:8100.
   <img width="80%" src="img/developmentVsProd.png" alt="AI Dev Tools Zoomcamp Cover Image">
   <p align="center">We run the application with Postgres using Docker Compose</p>
 </p>
+
+## Integration and end-to-end tests
+
+The AI assistant might have created some backend tests.
+
+If it didn’t, ask it to create integration tests:
+
+```
+Create integration tests that run against docker-compose.yaml. What scenarios should we test?
+```
+
+We added two things that can potentially break, so let’s test them too. We’ll verify that:
+
+- The frontend compiles correctly
+
+- The backend can communicate with Postgres
+
+<p align="center">
+  <img width="80%" src="img/developmentVsProd.png" alt="AI Dev Tools Zoomcamp Cover Image">
+  <p align="center">Playwright can run the two-session test for us</p>
+</p>
+
+Ask the AI assistant to implement a test:
+
+```
+Add an end-to-end test that runs against docker-compose.yaml.
+
+Use Playwright to:
+
+1. Log in as the interviewer (session 1).
+2. Create an interview session.
+3. Share the join link.
+4. Join from a separate client as the candidate (session 2).
+5. Change the canvas as the candidate (session 2).
+6. Verify that the interviewer sees the change (session 1).
+
+Put the tests in the e2e/ folder in the repository root.
+```
+
+After it finishes, we can run the tests with a single make command:
+
+```
+make e2e
+```
