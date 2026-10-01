@@ -7,10 +7,10 @@ FRONTEND_PORT ?= 5173
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-frontend install-backend run dev frontend backend \
-        test test-frontend test-backend test-backend-postgres test-integration test-compose lint build clean reset-db
+        test test-frontend test-backend test-backend-postgres test-integration test-compose e2e lint build clean reset-db
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 install: install-frontend install-backend ## Install all dependencies
 
@@ -49,6 +49,9 @@ test-backend-postgres: ## Run backend tests against a throwaway Postgres contain
 
 test-compose: ## Build docker-compose.yaml (app + Postgres) on a free port and test it end to end (needs Docker)
 	cd $(BACKEND) && uv run pytest integration_tests
+
+e2e: ## Browser end-to-end tests (Playwright) against docker-compose.yaml (needs Docker)
+	cd e2e && npm ci && npx playwright install chromium && npx playwright test
 
 INTEGRATION_PORT ?= 8092
 
