@@ -97,3 +97,30 @@ Add Postgres support to the backend.
 ```
 
 When it’s done, repeat the two-session test.
+
+## Docker Compose
+
+Previously, I started a Postgres container with a separate command. But now let’s put all the services our application needs inside one Docker Compose file.
+
+With this file, we can run our entire application with a single command docker compose up.
+
+Ask the assistant to implement it:
+
+```
+Create docker-compose.yaml with two services: Postgres and the app.
+```
+
+The file defines the database and adds a health check, so our application waits until Postgres is ready to accept connections.
+
+Start it:
+
+```
+docker compose up --build
+```
+
+In our case, it runs the application at localhost:8100.
+
+<p align="center">
+  <img width="80%" src="img/developmentVsProd.png" alt="AI Dev Tools Zoomcamp Cover Image">
+  <p align="center">We run the application with Postgres using Docker Compose</p>
+</p>
