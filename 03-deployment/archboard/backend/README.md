@@ -135,3 +135,11 @@ throwaway Postgres container:
 ```bash
 TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/postgres uv run pytest
 ```
+
+**Deployment tests.** `integration_tests/` checks the stack in `../docker-compose.yaml` from the
+outside: it builds the image, starts the app and Postgres under its own project name on a free
+port, and deletes them afterwards. They cover what unit tests can't: the image serves the
+frontend (including share links opened directly), API paths still return JSON, data goes to
+Postgres, a full share-link interview with WebSocket collaboration through the published port,
+data surviving a recreated app container, and the app recovering when Postgres restarts. They
+are not part of `uv run pytest`; run them with `make test-compose` (about a minute, needs Docker).

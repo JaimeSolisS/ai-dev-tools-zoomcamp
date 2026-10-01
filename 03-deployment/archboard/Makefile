@@ -7,7 +7,7 @@ FRONTEND_PORT ?= 5173
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-frontend install-backend run dev frontend backend \
-        test test-frontend test-backend test-backend-postgres test-integration lint build clean reset-db
+        test test-frontend test-backend test-backend-postgres test-integration test-compose lint build clean reset-db
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -46,6 +46,9 @@ test-backend-postgres: ## Run backend tests against a throwaway Postgres contain
 	trap "docker stop $$cid > /dev/null" EXIT; \
 	until docker exec $$cid pg_isready -U postgres -h localhost > /dev/null 2>&1; do sleep 0.5; done; \
 	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:$(PG_TEST_PORT)/postgres uv run pytest
+
+test-compose: ## Build docker-compose.yaml (app + Postgres) on a free port and test it end to end (needs Docker)
+	cd $(BACKEND) && uv run pytest integration_tests
 
 INTEGRATION_PORT ?= 8092
 
