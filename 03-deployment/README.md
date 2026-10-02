@@ -168,3 +168,28 @@ After it finishes, we can run the tests with a single make command:
 ```
 make e2e
 ```
+
+## Deploy to AWS
+
+We’re now certain that the application works well. We can deploy it.
+
+Our application runs in a container and only needs Postgres, so we have a lot of options for deploying it. We can use Render, Railway, Fly.io, or any other managed container system.
+
+Last year we deployed to Render, but this year I want to deploy to AWS. You don’t have to use AWS, and instead you can ask the coding assistant to recommend an environment for your application.
+
+Ask your assistant to deploy it:
+
+```
+Deploy this application to AWS. Use Terraform and use terraform folder for that. use aws profile [redacted]. Use an EC2 instance to deploy. Do not use RDS.
+```
+
+For that to work, you need to have an AWS user. I typically create a temporary user with admin permissions and watch every step of what the coding agents are doing.
+
+<p align="center">
+  <img width="80%" src="img/ec2.png" alt="AI Dev Tools Zoomcamp Cover Image">
+  <p align="center">One EC2 instance runs Caddy, the app, and Postgres. We manage it through CloudFormation.</p>
+</p>
+
+You can see what I got here. It runs the app, Postgres, and Caddy (adds HTTPS and WSS support for our app) on one EC2 instance.
+
+It’s fine for a proof-of-concept, but using managed database services (such as RDS) is better. We will not do it here.
