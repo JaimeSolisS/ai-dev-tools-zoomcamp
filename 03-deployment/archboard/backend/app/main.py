@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from .config import Settings
 from .db import create_db_engine, create_schema, create_session_factory
@@ -57,6 +59,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-Guest-Credential"],
     )
     install_error_handlers(app)
+
+    # Operational, not part of openapi.yaml: load balancers and the deploy pipeline poll it.
+    @app.get("/health", include_in_schema=False)
+    def health() -> JSONResponse:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception:  # any failure means unhealthy
+            return JSONResponse({"status": "error", "database": "unreachable", "version": settings.version}, 503)
+        return JSONResponse({"status": "ok", "database": "ok", "version": settings.version})
+
     for module in ROUTER_MODULES:
         app.include_router(module.router)
     if settings.static_dir:

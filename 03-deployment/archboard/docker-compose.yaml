@@ -30,7 +30,7 @@ services:
     ports:
       - "${APP_PORT:-8091}:8091"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')"]
       interval: 5s
       timeout: 5s
       retries: 12

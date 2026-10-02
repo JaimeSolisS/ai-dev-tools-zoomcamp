@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 # Paths owned by the API. Unknown paths under these return 404 instead of the app shell.
-API_PREFIXES = ("v1/", "docs", "redoc", "openapi.json")
+API_PREFIXES = ("v1/", "docs", "redoc", "openapi.json", "health")
 
 
 def install_frontend(app: FastAPI, static_dir: str) -> None:

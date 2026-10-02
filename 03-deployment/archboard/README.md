@@ -72,6 +72,8 @@ terraform -chdir=terraform output    # URL, instance id, ECR repository
 ```
 
 The targets use the `jsolisdev` AWS profile; override it with `make deploy AWS_PROFILE=other`.
+Terraform state is kept in S3 (bucket `archboard-tfstate-<account>`, with locking), so
+local runs and the pipeline share it; plain `terraform` commands need `AWS_PROFILE` set.
 
 There is no SSH; open a shell on the instance with Session Manager:
 
@@ -84,8 +86,26 @@ Things to know before sharing the deployment:
 
 - It still runs in **dev mode**, so anyone who can reach the URL can sign in as any email.
 - It is served over plain **HTTP** on the instance's public IP; there is no domain or TLS.
-- Terraform state is a **local file** in `terraform/` (not committed). It holds the database
-  password, so keep it; without it the AWS resources have to be removed by hand.
+- `make destroy` deletes the instance, and with it the Postgres data.
+
+### CI/CD
+
+[`.github/workflows/archboard.yml`](../../.github/workflows/archboard.yml) runs on every push
+and pull request that touches this folder:
+
+1. **Backend** (ruff + pytest) and **frontend** (type check + Vitest) tests, in parallel.
+2. **Integration**: builds the docker compose stack, then runs the compose integration tests,
+   the frontend HTTP client tests and the Playwright e2e tests against it.
+3. **Deploy** (pushes to `main` only): assumes an AWS role through GitHub OIDC (no stored
+   keys), runs `terraform apply`, builds and pushes the image tagged with the commit, rolls it
+   out over SSM, and waits until `GET /health` reports the database is up and the new commit
+   is the one running.
+
+The OIDC provider, the deploy role and the state bucket live in
+[`terraform/bootstrap/`](terraform/bootstrap). They are applied once by hand with
+`make bootstrap`, so the pipeline's role can't widen its own permissions.
+
+`GET /health` returns `{"status", "database", "version"}`, and 503 when the database is unreachable.
 
 ## Layout
 
@@ -93,7 +113,7 @@ Things to know before sharing the deployment:
 frontend/      React app (canvas, room, dashboard, services layer)
 backend/       FastAPI app, unit tests, docker compose integration tests
 e2e/           Playwright browser tests
-terraform/     AWS deployment (EC2 + ECR) and deploy.sh
+terraform/     AWS deployment (EC2 + ECR), deploy scripts, bootstrap/ for CI access
 _docs/         product and technical spec
 openapi.yaml   API contract shared by frontend and backend
 Dockerfile     one image: built frontend served by the backend

@@ -136,3 +136,9 @@ def test_app_recovers_when_postgres_restarts(stack: Stack, http: httpx.Client):
         assert http.get("/v1/sessions", headers=owner).status_code == 200
     title = unique("After db restart")
     assert http.post("/v1/sessions", json={"title": title}, headers=owner).status_code == 201
+
+
+def test_health_checks_the_database(http: httpx.Client):
+    response = http.get("/health")
+    assert response.status_code == 200
+    assert response.json()["database"] == "ok"

@@ -13,11 +13,19 @@ terraform {
       version = "~> 3.6"
     }
   }
+
+  # Bucket created by bootstrap/. Credentials come from the environment:
+  # AWS_PROFILE locally (the Makefile sets it), the OIDC role in CI.
+  backend "s3" {
+    bucket       = "archboard-tfstate-027654771042"
+    key          = "app.tfstate"
+    region       = "us-east-1"
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
 
   default_tags {
     tags = { Project = var.name }

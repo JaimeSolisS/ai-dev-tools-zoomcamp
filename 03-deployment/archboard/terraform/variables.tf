@@ -4,12 +4,6 @@ variable "name" {
   default     = "archboard"
 }
 
-variable "aws_profile" {
-  description = "AWS CLI profile to deploy with"
-  type        = string
-  default     = "jsolisdev"
-}
-
 variable "region" {
   description = "AWS region"
   type        = string

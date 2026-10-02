@@ -24,6 +24,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend/app ./app
 COPY --from=frontend /frontend/dist ./static
 
+# The git commit, reported by /health so a deploy can confirm which build is live.
+ARG APP_VERSION=dev
+ENV ARCHBOARD_VERSION=$APP_VERSION
 ENV PATH="/app/.venv/bin:$PATH" \
     ARCHBOARD_STATIC_DIR=/app/static \
     DATABASE_URL=sqlite:////data/archboard.db

@@ -1,0 +1,167 @@
+# Archboard (03-deployment/archboard) CI/CD:
+#   backend + frontend tests (parallel) -> docker compose integration + e2e tests
+#   -> on main: terraform apply, build and push the image, roll out, check /health
+name: archboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "03-deployment/archboard/**"
+      - "!03-deployment/archboard/**/*.md"
+      - ".github/workflows/archboard.yml"
+  pull_request:
+    paths:
+      - "03-deployment/archboard/**"
+      - "!03-deployment/archboard/**/*.md"
+      - ".github/workflows/archboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: 03-deployment/archboard
+
+env:
+  AWS_REGION: us-east-1
+  # Created by terraform/bootstrap; only the main branch of this repo can assume it.
+  AWS_DEPLOY_ROLE_ARN: arn:aws:iam::027654771042:role/archboard-github-deploy
+  TERRAFORM_VERSION: 1.13.4
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 03-deployment/archboard/backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: 03-deployment/archboard/backend/uv.lock
+      - run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Test
+        run: uv run pytest
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 03-deployment/archboard/frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: 03-deployment/archboard/frontend/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+
+  integration:
+    name: Integration and e2e tests (docker compose)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: 03-deployment/archboard/backend/uv.lock
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            03-deployment/archboard/frontend/package-lock.json
+            03-deployment/archboard/e2e/package-lock.json
+      - name: Build the docker compose stack
+        # The test suites start their own stacks from it; this build fills the layer cache they reuse.
+        run: docker compose build
+      - name: Integration tests (app + Postgres)
+        run: make test-compose
+      - name: Frontend HTTP client against the backend
+        run: |
+          (cd frontend && npm ci)
+          make test-integration
+      - name: Install Playwright
+        working-directory: 03-deployment/archboard/e2e
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        working-directory: 03-deployment/archboard/e2e
+        run: npx playwright test
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: 03-deployment/archboard/e2e/playwright-report
+          retention-days: 7
+
+  deploy:
+    name: Deploy to AWS
+    needs: integration
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC token -> AWS role
+    concurrency:
+      group: archboard-deploy
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: 03-deployment/archboard/terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false # plain stdout, so `terraform output -raw` works
+
+      - name: Terraform init
+        run: terraform init -input=false
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve
+      - name: Read outputs
+        id: tf
+        run: |
+          {
+            echo "repo=$(terraform output -raw ecr_repository_url)"
+            echo "instance=$(terraform output -raw instance_id)"
+            echo "url=$(terraform output -raw url)"
+            echo "version=${GITHUB_SHA::7}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the image
+        working-directory: 03-deployment/archboard
+        env:
+          REPO: ${{ steps.tf.outputs.repo }}
+          VERSION: ${{ steps.tf.outputs.version }}
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${REPO%%/*}"
+          docker build --build-arg APP_VERSION="$VERSION" -t "$REPO:$VERSION" -t "$REPO:latest" .
+          docker push "$REPO:$VERSION"
+          docker push "$REPO:latest"
+
+      - name: Roll out to the instance
+        run: ./rollout.sh "$AWS_REGION" "${{ steps.tf.outputs.instance }}"
+
+      - name: Health check
+        run: ./healthcheck.sh "${{ steps.tf.outputs.url }}" "${{ steps.tf.outputs.version }}"
+
+      - name: Summary
+        run: echo "Deployed ${{ steps.tf.outputs.version }} to ${{ steps.tf.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
