@@ -1,0 +1,74 @@
+#!/bin/bash
+# First boot: install Docker + compose, write the compose file and the deploy
+# script. The app starts once deploy.sh (local) has pushed an image to ECR.
+set -euxo pipefail
+
+# A nano instance has 0.5 GB of RAM: add swap so Postgres + the app fit.
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=1024
+  chmod 600 /swapfile
+  mkswap /swapfile
+  echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+fi
+swapon -a
+
+dnf install -y docker
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/archboard
+cat > /opt/archboard/.env <<'EOF'
+POSTGRES_PASSWORD=${db_password}
+EOF
+chmod 600 /opt/archboard/.env
+
+cat > /opt/archboard/docker-compose.yaml <<'EOF'
+services:
+  db:
+    image: postgres:17-alpine
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=30"]
+    environment:
+      POSTGRES_DB: archboard
+      POSTGRES_USER: archboard
+      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "archboard", "-d", "archboard", "-h", "localhost"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    image: ${image}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://archboard:$${POSTGRES_PASSWORD}@db:5432/archboard
+    ports:
+      - "80:8091"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+EOF
+
+cat > /opt/archboard/deploy.sh <<'EOF'
+#!/bin/bash
+# Pull the latest image from ECR and (re)start the stack.
+set -euo pipefail
+cd /opt/archboard
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
+docker compose pull
+docker compose up -d --remove-orphans
+docker image prune -f
+EOF
+chmod +x /opt/archboard/deploy.sh
+
+# Starts the stack if an image is already in ECR (e.g. instance replaced); fine to fail otherwise.
+/opt/archboard/deploy.sh || echo "no image yet; run terraform/deploy.sh locally"
