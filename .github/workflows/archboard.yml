@@ -33,13 +33,13 @@ env:
 jobs:
   backend:
     name: Backend tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: 03-deployment/archboard/backend
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0 # this action publishes no floating major tag
         with:
           enable-cache: true
           cache-dependency-glob: 03-deployment/archboard/backend/uv.lock
@@ -51,7 +51,7 @@ jobs:
 
   frontend:
     name: Frontend tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: 03-deployment/archboard/frontend
@@ -71,10 +71,10 @@ jobs:
   integration:
     name: Integration and e2e tests (docker compose)
     needs: [backend, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0 # this action publishes no floating major tag
         with:
           enable-cache: true
           cache-dependency-glob: 03-deployment/archboard/backend/uv.lock
@@ -111,7 +111,7 @@ jobs:
     name: Deploy to AWS
     needs: integration
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write # GitHub OIDC token -> AWS role
