@@ -9,8 +9,12 @@ variable "region" {
   default = "us-east-1"
 }
 
-variable "github_repo" {
-  description = "owner/name of the repository whose main branch may deploy"
+variable "github_sub_prefix" {
+  description = <<-EOT
+    Subject claim prefix of the repository whose main branch may deploy. The repo uses
+    GitHub's immutable subject claims (owner and repo IDs, so a rename can't hijack it);
+    get it with: gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix
+  EOT
   type        = string
-  default     = "JaimeSolisS/ai-dev-tools-zoomcamp"
+  default     = "repo:JaimeSolisS@26722249/ai-dev-tools-zoomcamp@1355245122"
 }
