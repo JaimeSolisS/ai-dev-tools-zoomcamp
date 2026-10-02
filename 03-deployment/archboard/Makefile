@@ -7,7 +7,8 @@ FRONTEND_PORT ?= 5173
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-frontend install-backend run dev frontend backend \
-        test test-frontend test-backend test-backend-postgres test-integration test-compose e2e lint build clean reset-db
+        test test-frontend test-backend test-backend-postgres test-integration test-compose e2e lint build clean reset-db \
+        deploy deploy-app destroy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -78,3 +79,16 @@ clean: ## Remove build output and caches
 	rm -rf $(FRONTEND)/dist $(FRONTEND)/tsconfig.tsbuildinfo
 	rm -rf $(BACKEND)/.pytest_cache $(BACKEND)/.ruff_cache
 	find $(BACKEND) -name __pycache__ -type d -prune -exec rm -rf {} +
+
+AWS_PROFILE ?= jsolisdev
+export AWS_PROFILE
+
+deploy: ## Deploy to AWS: terraform apply, build and push the image, restart the app (needs Docker)
+	terraform/deploy.sh
+
+deploy-app: ## Redeploy only the app code to AWS (skips terraform apply)
+	SKIP_APPLY=1 terraform/deploy.sh
+
+destroy: ## Delete all the AWS resources (asks for confirmation; the database is lost)
+	terraform -chdir=terraform init -input=false > /dev/null
+	terraform -chdir=terraform destroy

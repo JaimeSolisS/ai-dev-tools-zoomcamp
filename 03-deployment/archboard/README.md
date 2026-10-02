@@ -65,11 +65,13 @@ database stored on the instance's disk. The image is built on your machine and p
 because the instance is too small to build the frontend itself.
 
 ```bash
-terraform/deploy.sh                  # terraform apply, build and push the image, restart the app
-SKIP_APPLY=1 terraform/deploy.sh     # code-only redeploy
+make deploy                          # terraform apply, build and push the image, restart the app
+make deploy-app                      # code-only redeploy (skips terraform apply)
+make destroy                         # delete all the AWS resources, database included (asks first)
 terraform -chdir=terraform output    # URL, instance id, ECR repository
-terraform -chdir=terraform destroy   # tear everything down
 ```
+
+The targets use the `jsolisdev` AWS profile; override it with `make deploy AWS_PROFILE=other`.
 
 There is no SSH; open a shell on the instance with Session Manager:
 
