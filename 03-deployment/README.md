@@ -187,9 +187,53 @@ For that to work, you need to have an AWS user. I typically create a temporary u
 
 <p align="center">
   <img width="80%" src="img/ec2.png" alt="AI Dev Tools Zoomcamp Cover Image">
-  <p align="center">One EC2 instance runs Caddy, the app, and Postgres. We manage it through CloudFormation.</p>
+  <p align="center">One EC2 instance runs Caddy, the app, and Postgres. We manage it through Terraform.</p>
 </p>
 
 You can see what I got here. It runs the app, Postgres, and Caddy (adds HTTPS and WSS support for our app) on one EC2 instance.
 
 It’s fine for a proof-of-concept, but using managed database services (such as RDS) is better. We will not do it here.
+
+## CI/CD with GitHub Actions
+
+We used a user with the admin permissions to deploy the application. It’s okay for the first deployment, but only when we carefully watch it. The next step is to configure CI/CD and remove that access.
+
+- Continuous integration (CI) means that every time we make a change and push it to GitHub, we automatically run all the tests to make sure we didn’t break anything.
+
+- Continuous deployment (CD) is about deploying this change automatically.
+
+In GitHub, we use GitHub Actions for that.
+
+Let’s configure it. Every time we make a push to main, we want to:
+
+- run frontend and backend tests
+
+- build the containers
+
+- run the integration tests
+
+- run the end-to-end tests
+
+- if all the tests pass, deploy the new version
+
+For the last step, the runner (the process that will deploy the application) will need to be able to access our AWS infrastructure. We will use OpenID Connect (OIDC) for this: the runner will assume a role with the necessary permissions and update the application.
+
+<p align="center">
+  <img width="80%" src="img/cicd.png" alt="AI Dev Tools Zoomcamp Cover Image">
+  <p align="center">GitHub Actions runs frontend and backend tests in parallel, checks the full stack, and then deploys to AWS</p>
+</p>
+
+Create the role and the workflow:
+
+```
+Create a CI/CD pipeline that:
+
+- runs backend and frontend tests in parallel
+- builds the Docker Compose stack and runs integration and end-to-end tests against it
+- deploys to AWS using a GitHub OIDC role
+- validates that the deploy is successful by checking the health endpoint
+```
+
+The finished workflow uses a restricted AWS role for deployment.
+
+Change something in the application, commit, and push to see it go live.
