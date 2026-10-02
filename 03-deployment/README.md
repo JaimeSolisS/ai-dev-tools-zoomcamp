@@ -237,3 +237,33 @@ Create a CI/CD pipeline that:
 The finished workflow uses a restricted AWS role for deployment.
 
 Change something in the application, commit, and push to see it go live.
+
+## Clean up
+
+When we’re done, we need to delete all the resources created by CloudFormation:
+
+```
+make destroy
+```
+
+Let’s recap what we have done so far:
+
+We created the frontend application with React
+
+Then we defined the frontend-backend API with OpenAPI specs
+
+Based on the specs, we created the backend
+
+Next, we added database support with SQLite and SQLAlchemy to the backend
+
+To make it easier to deploy the application, we put both frontend and backend inside one container. The backend serves the frontend.
+
+To go to production, we replaced SQLite with Postgres.
+
+Next, we simplified running everything locally with Docker Compose
+
+Once everything was in Compose, we created an end-to-end test
+
+We took the application that worked locally and deployed it to AWS using CloudFormation
+
+Finally, we created a CI/CD deployment pipeline to deploy every change automatically.
