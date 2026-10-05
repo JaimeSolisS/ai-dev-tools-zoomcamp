@@ -35,19 +35,38 @@ Run tests with `uv run --frozen pytest -q`. Stop the app with `docker compose do
 
 ## Telemetry
 
-The app emits OpenTelemetry traces, metrics, and logs to the console. Inspect them with:
+The app sends OpenTelemetry traces, metrics, and logs over OTLP to an OpenTelemetry Collector, which forwards them to Prometheus (metrics), Loki (logs), and Tempo (traces). Grafana reads all three. `docker compose up --build -d --wait` starts the whole stack.
 
-```bash
-docker compose logs app
-```
+| Service | URL | Purpose |
+| --- | --- | --- |
+| Grafana | <http://127.0.0.1:3000> | Dashboards and Explore (no login) |
+| Prometheus | <http://127.0.0.1:9090> | Metrics |
+| Loki | <http://127.0.0.1:3100> | Logs API |
+| Tempo | <http://127.0.0.1:3200> | Traces API |
 
-| Signal | What to look for |
+Override ports with `GRAFANA_PORT`, `PROMETHEUS_PORT`, `LOKI_PORT`, and `TEMPO_PORT`. The Collector is only reachable inside the Compose network.
+
+Grafana opens on the **Order Tracker** dashboard: request and error counts, requests and errors by route and status, raw request totals, error traces, and warning/error logs. In a log line's details, the `TraceID` link opens the trace in Tempo; from a span, "Logs for this span" goes back to Loki.
+
+| Signal | Where | What to look for |
+| --- | --- | --- |
+| Metric | Prometheus | `http_server_request_duration_seconds_count` with `http_route` and `http_response_status_code` |
+| Trace | Tempo | An `order lookup` span with `order.id`; crashes are marked as errors with the stack trace |
+| Log | Loki, `{service_name="order-tracker"}` | `Order lookup succeeded` / `failed` / `crashed`, with `order_id` and `trace_id` |
+
+FastAPI records the HTTP request span, the request metric, and unhandled-exception logs on its own. The order lookup route adds the `order lookup` span and its log lines. Metrics are exported every 10 seconds (`OTEL_METRIC_EXPORT_INTERVAL`) and Prometheus scrapes the Collector every 10 seconds, so allow about 20 seconds for a request to show up. Without `OTEL_EXPORTER_OTLP_ENDPOINT` (for example, when running the app outside Compose), the app prints telemetry to the console instead.
+
+Configuration:
+
+| Path | Contents |
 | --- | --- |
-| Metric | `http.server.request.duration` (count and latency) with `http.route` and `http.response.status_code` |
-| Trace | An `order lookup` span with `order.id`; crashes are marked as errors with the stack trace |
-| Log | `Order lookup succeeded` / `failed` / `crashed`, with `order.id` and the trace ID |
-
-FastAPI records the HTTP request span, the request metric, and unhandled-exception logs on its own. The order lookup route adds the `order lookup` span and its log lines. Metrics are printed every 10 seconds (`OTEL_METRIC_EXPORT_INTERVAL` in `compose.yaml`). Spans and logs are sent in batches, so they can take a few seconds to show up. Exporter setup is in `app/telemetry.py`.
+| `app/telemetry.py` | Exporter setup |
+| `observability/otel-collector/config.yaml` | OTLP receiver and the pipelines to each backend |
+| `observability/prometheus/prometheus.yml` | Scrape config for the Collector |
+| `observability/loki/config.yaml` | Loki single-node config with OTLP structured metadata |
+| `observability/tempo/config.yaml` | Tempo single-node config |
+| `observability/grafana/provisioning/` | Data sources and the dashboard provider |
+| `observability/grafana/dashboards/order-tracker.json` | The Order Tracker dashboard |
 
 ## Notes
 
