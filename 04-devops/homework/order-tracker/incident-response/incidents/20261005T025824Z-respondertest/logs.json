@@ -1,0 +1,41 @@
+{
+  "query": "{service_name=\"order-tracker\"} | severity_number >= 13",
+  "entries": [
+    {
+      "time": "2026-10-05T02:52:08.658632+00:00",
+      "level": "WARN",
+      "message": "Order lookup failed: Order not found",
+      "scope_name": "app.orders",
+      "order_id": "standard-1002",
+      "trace_id": "660da006cb2e3de3e4114961a6f88414",
+      "span_id": "2117b67e911bc4a7"
+    },
+    {
+      "time": "2026-10-05T02:51:03.775159+00:00",
+      "level": "WARN",
+      "message": "Order lookup failed: Order not found",
+      "scope_name": "app.orders",
+      "order_id": "standard-1002",
+      "trace_id": "b92f9edcadf39044f2976c25cddcd464",
+      "span_id": "995934061e64d738"
+    },
+    {
+      "time": "2026-10-05T02:49:57.763152+00:00",
+      "level": "WARN",
+      "message": "Order lookup failed: Order not found",
+      "scope_name": "app.orders",
+      "order_id": "standard-1002",
+      "trace_id": "66bfde95d6a9bcd234161edfa05a482f",
+      "span_id": "7961f1b6cfa25744"
+    },
+    {
+      "time": "2026-10-05T02:48:39.064412+00:00",
+      "level": "WARN",
+      "message": "Order lookup failed: Order not found",
+      "scope_name": "app.orders",
+      "order_id": "standard-1002",
+      "trace_id": "442c67db93372d444f0239a4eabb3ef2",
+      "span_id": "6eabb64d94dbe49c"
+    }
+  ]
+}

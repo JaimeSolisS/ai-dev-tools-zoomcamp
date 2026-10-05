@@ -72,6 +72,19 @@ Configuration:
 | `observability/grafana/provisioning/` | Data sources, the dashboard provider, and alert rules (`alerting/`) |
 | `observability/grafana/dashboards/order-tracker.json` | The Order Tracker dashboard |
 
+## Incident response
+
+`incident-response/` contains a service that receives Grafana alerts at `POST /alerts` on port 8001. For each firing alert it saves the evidence (the alert, the affected endpoint, metrics, logs, traces, and a `summary.md`) to `incident-response/incidents/<incident>/`, then starts Claude Code in headless mode (`claude -p`) to find the root cause, fix and verify it, or escalate. The agent's answer is saved as `response.md` in the same directory.
+
+It runs on the host, next to the Compose stack:
+
+```bash
+cd incident-response
+uv run --frozen uvicorn responder.main:app --host 127.0.0.1 --port 8001
+```
+
+See [incident-response/README.md](incident-response/README.md) for the test alert, the evidence files, the agent's permissions, and configuration.
+
 ## Notes
 
 The app uses SQLite to keep setup small. Run one app container at a time. The course exercise is about detecting and handling an incident, not scaling the database.

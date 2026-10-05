@@ -121,6 +121,12 @@ Wait for the agent to finish, then read its response.
 
 What did the agent respond? Include the last line from its answer.
 
+**Answer:** The agent confirmed it received the test alert and found nothing to fix: no 5xx responses or error traces in the window, and the only warnings were 404s for the missing order `standard-1002`. It changed no files. Last line:
+
+```
+RESULT: Test notification received and confirmed; no incident, no action taken.
+```
+
 ## Question 6: Watch the agent fix the incident
 
 Now test the complete flow with a real Grafana alert.

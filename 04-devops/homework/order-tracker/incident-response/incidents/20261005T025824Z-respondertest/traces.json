@@ -1,0 +1,6 @@
+{
+  "queries": [
+    "{resource.service.name=\"order-tracker\" && status=error}"
+  ],
+  "traces": []
+}
