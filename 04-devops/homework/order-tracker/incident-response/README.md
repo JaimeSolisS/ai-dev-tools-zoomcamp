@@ -13,6 +13,8 @@ cd incident-response
 uv run --frozen uvicorn responder.main:app --host 127.0.0.1 --port 8001
 ```
 
+Grafana sends its alerts here automatically through the `incident-responder` webhook contact point (`observability/grafana/provisioning/alerting/responder-webhook.yaml`). From inside Docker it reaches the host as `host.docker.internal`.
+
 Send a test alert:
 
 ```bash

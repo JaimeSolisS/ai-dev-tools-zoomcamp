@@ -58,7 +58,9 @@ FastAPI records the HTTP request span, the request metric, and unhandled-excepti
 
 ### Alerting
 
-Grafana evaluates the **Order Tracker 5xx responses** rule every 10 seconds, with one alert instance per endpoint (`http_route`). It fires as soon as an endpoint has returned any 5xx in the last 5 minutes, then goes back to Normal once 5 minutes pass without one. Each alert carries `summary`, `description`, `endpoint`, `time_window`, and `dashboard_url` annotations, and is linked to the dashboard's error panel. If no 5xx has ever been recorded, the query returns 0, so the rule shows Normal instead of No data. Check its state under **Alerting → Alert rules** in Grafana. No contact point is set up yet.
+Grafana evaluates the **Order Tracker 5xx responses** rule every 10 seconds, with one alert instance per endpoint (`http_route`). It fires as soon as an endpoint has returned any 5xx in the last 5 minutes, then goes back to Normal once 5 minutes pass without one. Each alert carries `summary`, `description`, `endpoint`, `time_window`, and `dashboard_url` annotations, and is linked to the dashboard's error panel. If no 5xx has ever been recorded, the query returns 0, so the rule shows Normal instead of No data. Check its state under **Alerting → Alert rules** in Grafana.
+
+Notifications go to the `incident-responder` webhook contact point at `http://host.docker.internal:8001/alerts`, which is the incident responder running on the host (see [Incident response](#incident-response)). The notification policy groups alerts by `alertname` and `http_route`, waits 10 seconds before the first notification, and also sends resolved notifications. If the responder isn't running, Grafana logs a failed delivery and retries on the next notification.
 
 Configuration:
 
@@ -69,7 +71,7 @@ Configuration:
 | `observability/prometheus/prometheus.yml` | Scrape config for the Collector |
 | `observability/loki/config.yaml` | Loki single-node config with OTLP structured metadata |
 | `observability/tempo/config.yaml` | Tempo single-node config |
-| `observability/grafana/provisioning/` | Data sources, the dashboard provider, and alert rules (`alerting/`) |
+| `observability/grafana/provisioning/` | Data sources, the dashboard provider, and alerting (`alerting/`: the 5xx rule, the responder webhook, and the notification policy) |
 | `observability/grafana/dashboards/order-tracker.json` | The Order Tracker dashboard |
 
 ## Incident response

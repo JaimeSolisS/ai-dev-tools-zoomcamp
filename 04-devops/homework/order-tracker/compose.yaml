@@ -92,6 +92,9 @@ services:
       - prometheus
       - loki
       - tempo
+    # Lets Grafana reach the incident responder on the host (also on Linux).
+    extra_hosts:
+      - host.docker.internal:host-gateway
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]

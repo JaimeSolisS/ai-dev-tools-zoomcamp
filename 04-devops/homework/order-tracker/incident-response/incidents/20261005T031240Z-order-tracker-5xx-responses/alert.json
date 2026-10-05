@@ -1,0 +1,61 @@
+{
+  "receiver": "incident-responder",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "Order Tracker 5xx responses",
+        "grafana_folder": "Order Tracker",
+        "http_route": "/api/orders/{order_id}",
+        "service": "order-tracker",
+        "severity": "critical"
+      },
+      "annotations": {
+        "dashboard_url": "http://localhost:3000/d/order-tracker/order-tracker?from=now-30m&to=now&var-route=%2Fapi%2Forders%2F%7Border_id%7D",
+        "description": "Server errors (HTTP 5xx) on endpoint /api/orders/{order_id} during the last 5 minutes. Check the dashboard's error traces and logs for the stack trace.",
+        "endpoint": "/api/orders/{order_id}",
+        "summary": "/api/orders/{order_id} returned 1 5xx response(s) in the last 5m",
+        "time_window": "5m"
+      },
+      "startsAt": "2026-10-05T03:12:30Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://localhost:3000/alerting/grafana/order-tracker-5xx/view?orgId=1",
+      "fingerprint": "4f283efda4e94e95",
+      "silenceURL": "http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=alertname%3DOrder+Tracker+5xx+responses&matcher=grafana_folder%3DOrder+Tracker&matcher=http_route%3D%2Fapi%2Forders%2F%7Border_id%7D&matcher=service%3Dorder-tracker&matcher=severity%3Dcritical&orgId=1",
+      "dashboardURL": "http://localhost:3000/d/order-tracker?orgId=1",
+      "panelURL": "http://localhost:3000/d/order-tracker?orgId=1&viewPanel=6",
+      "values": {
+        "A": 1.0352359820421067,
+        "B": 1
+      },
+      "valueString": "[ var='A' labels={http_route=/api/orders/{order_id}} value=1.0352359820421067 ], [ var='B' labels={http_route=/api/orders/{order_id}} value=1 ]"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "Order Tracker 5xx responses",
+    "http_route": "/api/orders/{order_id}"
+  },
+  "commonLabels": {
+    "alertname": "Order Tracker 5xx responses",
+    "grafana_folder": "Order Tracker",
+    "http_route": "/api/orders/{order_id}",
+    "service": "order-tracker",
+    "severity": "critical"
+  },
+  "commonAnnotations": {
+    "dashboard_url": "http://localhost:3000/d/order-tracker/order-tracker?from=now-30m&to=now&var-route=%2Fapi%2Forders%2F%7Border_id%7D",
+    "description": "Server errors (HTTP 5xx) on endpoint /api/orders/{order_id} during the last 5 minutes. Check the dashboard's error traces and logs for the stack trace.",
+    "endpoint": "/api/orders/{order_id}",
+    "summary": "/api/orders/{order_id} returned 1 5xx response(s) in the last 5m",
+    "time_window": "5m"
+  },
+  "externalURL": "http://localhost:3000/",
+  "version": "1",
+  "groupKey": "{}:{alertname=\"Order Tracker 5xx responses\", http_route=\"/api/orders/{order_id}\"}",
+  "truncatedAlerts": 0,
+  "orgId": 1,
+  "title": "[FIRING:1] Order Tracker 5xx responses /api/orders/{order_id} (Order Tracker order-tracker critical)",
+  "state": "alerting",
+  "message": "**Firing**\n\nValue: A=1.0352359820421067, B=1\nLabels:\n - alertname = Order Tracker 5xx responses\n - grafana_folder = Order Tracker\n - http_route = /api/orders/{order_id}\n - service = order-tracker\n - severity = critical\nAnnotations:\n - dashboard_url = http://localhost:3000/d/order-tracker/order-tracker?from=now-30m&to=now&var-route=%2Fapi%2Forders%2F%7Border_id%7D\n - description = Server errors (HTTP 5xx) on endpoint /api/orders/{order_id} during the last 5 minutes. Check the dashboard's error traces and logs for the stack trace.\n - endpoint = /api/orders/{order_id}\n - summary = /api/orders/{order_id} returned 1 5xx response(s) in the last 5m\n - time_window = 5m\nSource: http://localhost:3000/alerting/grafana/order-tracker-5xx/view?orgId=1\nSilence: http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=alertname%3DOrder+Tracker+5xx+responses&matcher=grafana_folder%3DOrder+Tracker&matcher=http_route%3D%2Fapi%2Forders%2F%7Border_id%7D&matcher=service%3Dorder-tracker&matcher=severity%3Dcritical&orgId=1\nDashboard: http://localhost:3000/d/order-tracker?orgId=1\nPanel: http://localhost:3000/d/order-tracker?orgId=1&viewPanel=6\n"
+}

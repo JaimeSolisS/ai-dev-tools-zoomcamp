@@ -1,0 +1,24 @@
+apiVersion: 1
+
+# Send every alert to the incident responder (incident-response/), which runs on
+# the host. host.docker.internal is the host as seen from the Grafana container.
+contactPoints:
+  - orgId: 1
+    name: incident-responder
+    receivers:
+      - uid: incident-responder-webhook
+        type: webhook
+        settings:
+          url: http://host.docker.internal:8001/alerts
+          httpMethod: POST
+        disableResolveMessage: false
+
+# Replaces Grafana's default policy (email) so all alerts go to the responder.
+policies:
+  - orgId: 1
+    receiver: incident-responder
+    # One notification per endpoint, so each incident gets its own evidence.
+    group_by: [alertname, http_route]
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 4h

@@ -150,6 +150,8 @@ What was the problem?
 - The app rejected the order's `preparing` status.
 - The lookup searched the wrong database column for express orders.
 
+**Answer: The express delivery date calculation tried to use a day that does not exist in that month.**
+
 ## Submission
 
 Submit your homework on the [course platform](https://courses.datatalks.club/ai-dev-tools-2026/homework/hw4). Use the link to your repository. Commit and push your telemetry and alert configuration, responder, incident evidence, and agent's fix.

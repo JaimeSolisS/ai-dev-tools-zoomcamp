@@ -1,0 +1,297 @@
+{
+  "queries": [
+    "{span.http.route=\"/api/orders/{order_id}\"} && {resource.service.name=\"order-tracker\" && status=error}"
+  ],
+  "traces": [
+    {
+      "trace_id": "dca3b36404a3f80cad7fff1011963cde",
+      "spans": [
+        {
+          "name": "fastapi.dependencies",
+          "span_id": "8M3YLtPtNJ0=",
+          "parent_span_id": "WCDklIgUvNI=",
+          "status": {},
+          "duration_ms": 3.87,
+          "attributes": {
+            "code.function.name": "app.main.get_order"
+          },
+          "events": []
+        },
+        {
+          "name": "fastapi.endpoint",
+          "span_id": "4+VB6YBVMMs=",
+          "parent_span_id": "WCDklIgUvNI=",
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 13.13,
+          "attributes": {
+            "code.function.name": "app.main.get_order",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "GET /api/orders/{order_id}",
+          "span_id": "WCDklIgUvNI=",
+          "parent_span_id": null,
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 29.38,
+          "attributes": {
+            "server.address": "localhost",
+            "server.port": "8000",
+            "url.path": "/api/orders/express-1002",
+            "url.scheme": "http",
+            "http.request.method": "GET",
+            "network.protocol.version": "1.1",
+            "http.route": "/api/orders/{order_id}",
+            "http.response.status_code": "500",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "order lookup",
+          "span_id": "nFRM0S8/Jek=",
+          "parent_span_id": "4+VB6YBVMMs=",
+          "status": {
+            "message": "ValueError",
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 12.89,
+          "attributes": {
+            "order.id": "express-1002"
+          },
+          "events": [
+            {
+              "name": "exception",
+              "attributes": {
+                "exception.type": "ValueError",
+                "exception.message": "day is out of range for month",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n",
+                "exception.escaped": "False"
+              }
+            }
+          ]
+        },
+        {
+          "name": "fastapi.dependencies",
+          "span_id": "8M3YLtPtNJ0=",
+          "parent_span_id": "WCDklIgUvNI=",
+          "status": {},
+          "duration_ms": 3.87,
+          "attributes": {
+            "code.function.name": "app.main.get_order"
+          },
+          "events": []
+        },
+        {
+          "name": "fastapi.endpoint",
+          "span_id": "4+VB6YBVMMs=",
+          "parent_span_id": "WCDklIgUvNI=",
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 13.13,
+          "attributes": {
+            "code.function.name": "app.main.get_order",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "GET /api/orders/{order_id}",
+          "span_id": "WCDklIgUvNI=",
+          "parent_span_id": null,
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 29.38,
+          "attributes": {
+            "server.address": "localhost",
+            "server.port": "8000",
+            "url.path": "/api/orders/express-1002",
+            "url.scheme": "http",
+            "http.request.method": "GET",
+            "network.protocol.version": "1.1",
+            "http.route": "/api/orders/{order_id}",
+            "http.response.status_code": "500",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "order lookup",
+          "span_id": "nFRM0S8/Jek=",
+          "parent_span_id": "4+VB6YBVMMs=",
+          "status": {
+            "message": "ValueError",
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 12.89,
+          "attributes": {
+            "order.id": "express-1002"
+          },
+          "events": [
+            {
+              "name": "exception",
+              "attributes": {
+                "exception.type": "ValueError",
+                "exception.message": "day is out of range for month",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n",
+                "exception.escaped": "False"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_id": "7587d0d92db3f8515d81a5fdd5421ad8",
+      "spans": [
+        {
+          "name": "fastapi.dependencies",
+          "span_id": "OhIsErIbpIY=",
+          "parent_span_id": "cIFVF4RRv40=",
+          "status": {},
+          "duration_ms": 0.13,
+          "attributes": {
+            "code.function.name": "app.main.get_order"
+          },
+          "events": []
+        },
+        {
+          "name": "fastapi.endpoint",
+          "span_id": "SpBUiQzkFr0=",
+          "parent_span_id": "cIFVF4RRv40=",
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 4.89,
+          "attributes": {
+            "code.function.name": "app.main.get_order",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "GET /api/orders/{order_id}",
+          "span_id": "cIFVF4RRv40=",
+          "parent_span_id": null,
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 11.52,
+          "attributes": {
+            "server.address": "localhost",
+            "server.port": "8000",
+            "url.path": "/api/orders/express-1002",
+            "url.scheme": "http",
+            "http.request.method": "GET",
+            "network.protocol.version": "1.1",
+            "http.route": "/api/orders/{order_id}",
+            "http.response.status_code": "500",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "order lookup",
+          "span_id": "IRAl3cVdewo=",
+          "parent_span_id": "SpBUiQzkFr0=",
+          "status": {
+            "message": "ValueError",
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 4.54,
+          "attributes": {
+            "order.id": "express-1002"
+          },
+          "events": [
+            {
+              "name": "exception",
+              "attributes": {
+                "exception.type": "ValueError",
+                "exception.message": "day is out of range for month",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n",
+                "exception.escaped": "False"
+              }
+            }
+          ]
+        },
+        {
+          "name": "fastapi.dependencies",
+          "span_id": "OhIsErIbpIY=",
+          "parent_span_id": "cIFVF4RRv40=",
+          "status": {},
+          "duration_ms": 0.13,
+          "attributes": {
+            "code.function.name": "app.main.get_order"
+          },
+          "events": []
+        },
+        {
+          "name": "fastapi.endpoint",
+          "span_id": "SpBUiQzkFr0=",
+          "parent_span_id": "cIFVF4RRv40=",
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 4.89,
+          "attributes": {
+            "code.function.name": "app.main.get_order",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "GET /api/orders/{order_id}",
+          "span_id": "cIFVF4RRv40=",
+          "parent_span_id": null,
+          "status": {
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 11.52,
+          "attributes": {
+            "server.address": "localhost",
+            "server.port": "8000",
+            "url.path": "/api/orders/express-1002",
+            "url.scheme": "http",
+            "http.request.method": "GET",
+            "network.protocol.version": "1.1",
+            "http.route": "/api/orders/{order_id}",
+            "http.response.status_code": "500",
+            "error.type": "ValueError"
+          },
+          "events": []
+        },
+        {
+          "name": "order lookup",
+          "span_id": "IRAl3cVdewo=",
+          "parent_span_id": "SpBUiQzkFr0=",
+          "status": {
+            "message": "ValueError",
+            "code": "STATUS_CODE_ERROR"
+          },
+          "duration_ms": 4.54,
+          "attributes": {
+            "order.id": "express-1002"
+          },
+          "events": [
+            {
+              "name": "exception",
+              "attributes": {
+                "exception.type": "ValueError",
+                "exception.message": "day is out of range for month",
+                "exception.stacktrace": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n",
+                "exception.escaped": "False"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -35,6 +35,18 @@ def test_missing_order(client):
     assert client.get("/api/orders/missing").status_code == 404
 
 
+def test_express_order_placed_at_month_end(client):
+    # Regression: the estimate used replace(day=day + 2), which crashed near month end.
+    assert client.get("/api/orders/express-1002").status_code == 200
+    with main.connect() as db:
+        db.execute(
+            "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?)",
+            ("express-eom", "Jo", "Lamp", "express", "received", "2026-09-30T23:00:00+00:00"),
+        )
+    response = client.get("/api/orders/express-eom")
+    assert response.status_code == 200
+    assert response.json()["estimated_delivery"] == "2026-10-02"
+
 
 def request_counts(metric_reader):
     counts = {}

@@ -1,0 +1,522 @@
+{
+  "batches": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "python"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.45.0"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "f64d6245-3418-42a6-a6a9-0b6529697e38"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "order-tracker"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "fastapi",
+            "version": "0.142.2"
+          },
+          "spans": [
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "OhIsErIbpIY=",
+              "parentSpanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "fastapi.dependencies",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957931283132",
+              "endTimeUnixNano": "1791169957931413790",
+              "attributes": [
+                {
+                  "key": "code.function.name",
+                  "value": {
+                    "stringValue": "app.main.get_order"
+                  }
+                }
+              ],
+              "status": {}
+            },
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "SpBUiQzkFr0=",
+              "parentSpanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "fastapi.endpoint",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957931911460",
+              "endTimeUnixNano": "1791169957936799919",
+              "attributes": [
+                {
+                  "key": "code.function.name",
+                  "value": {
+                    "stringValue": "app.main.get_order"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "ValueError"
+                  }
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_ERROR"
+              }
+            },
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "GET /api/orders/{order_id}",
+              "kind": "SPAN_KIND_SERVER",
+              "startTimeUnixNano": "1791169957930963716",
+              "endTimeUnixNano": "1791169957942483245",
+              "attributes": [
+                {
+                  "key": "server.address",
+                  "value": {
+                    "stringValue": "localhost"
+                  }
+                },
+                {
+                  "key": "server.port",
+                  "value": {
+                    "intValue": "8000"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/orders/express-1002"
+                  }
+                },
+                {
+                  "key": "url.scheme",
+                  "value": {
+                    "stringValue": "http"
+                  }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": {
+                    "stringValue": "1.1"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/orders/{order_id}"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "500"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "ValueError"
+                  }
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_ERROR"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "python"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.45.0"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "f64d6245-3418-42a6-a6a9-0b6529697e38"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "order-tracker"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "app.orders"
+          },
+          "spans": [
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "IRAl3cVdewo=",
+              "parentSpanId": "SpBUiQzkFr0=",
+              "flags": 256,
+              "name": "order lookup",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957932020338",
+              "endTimeUnixNano": "1791169957936562981",
+              "attributes": [
+                {
+                  "key": "order.id",
+                  "value": {
+                    "stringValue": "express-1002"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1791169957936182970",
+                  "name": "exception",
+                  "attributes": [
+                    {
+                      "key": "exception.type",
+                      "value": {
+                        "stringValue": "ValueError"
+                      }
+                    },
+                    {
+                      "key": "exception.message",
+                      "value": {
+                        "stringValue": "day is out of range for month"
+                      }
+                    },
+                    {
+                      "key": "exception.stacktrace",
+                      "value": {
+                        "stringValue": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n"
+                      }
+                    },
+                    {
+                      "key": "exception.escaped",
+                      "value": {
+                        "stringValue": "False"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "status": {
+                "message": "ValueError",
+                "code": "STATUS_CODE_ERROR"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "python"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.45.0"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "f64d6245-3418-42a6-a6a9-0b6529697e38"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "order-tracker"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "fastapi",
+            "version": "0.142.2"
+          },
+          "spans": [
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "OhIsErIbpIY=",
+              "parentSpanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "fastapi.dependencies",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957931283132",
+              "endTimeUnixNano": "1791169957931413790",
+              "attributes": [
+                {
+                  "key": "code.function.name",
+                  "value": {
+                    "stringValue": "app.main.get_order"
+                  }
+                }
+              ],
+              "status": {}
+            },
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "SpBUiQzkFr0=",
+              "parentSpanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "fastapi.endpoint",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957931911460",
+              "endTimeUnixNano": "1791169957936799919",
+              "attributes": [
+                {
+                  "key": "code.function.name",
+                  "value": {
+                    "stringValue": "app.main.get_order"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "ValueError"
+                  }
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_ERROR"
+              }
+            },
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "cIFVF4RRv40=",
+              "flags": 256,
+              "name": "GET /api/orders/{order_id}",
+              "kind": "SPAN_KIND_SERVER",
+              "startTimeUnixNano": "1791169957930963716",
+              "endTimeUnixNano": "1791169957942483245",
+              "attributes": [
+                {
+                  "key": "server.address",
+                  "value": {
+                    "stringValue": "localhost"
+                  }
+                },
+                {
+                  "key": "server.port",
+                  "value": {
+                    "intValue": "8000"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/orders/express-1002"
+                  }
+                },
+                {
+                  "key": "url.scheme",
+                  "value": {
+                    "stringValue": "http"
+                  }
+                },
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "network.protocol.version",
+                  "value": {
+                    "stringValue": "1.1"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/orders/{order_id}"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "500"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "ValueError"
+                  }
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_ERROR"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "python"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.45.0"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "f64d6245-3418-42a6-a6a9-0b6529697e38"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "order-tracker"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "app.orders"
+          },
+          "spans": [
+            {
+              "traceId": "dYfQ2S2z+FFdgaX91UIa2A==",
+              "spanId": "IRAl3cVdewo=",
+              "parentSpanId": "SpBUiQzkFr0=",
+              "flags": 256,
+              "name": "order lookup",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1791169957932020338",
+              "endTimeUnixNano": "1791169957936562981",
+              "attributes": [
+                {
+                  "key": "order.id",
+                  "value": {
+                    "stringValue": "express-1002"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1791169957936182970",
+                  "name": "exception",
+                  "attributes": [
+                    {
+                      "key": "exception.type",
+                      "value": {
+                        "stringValue": "ValueError"
+                      }
+                    },
+                    {
+                      "key": "exception.message",
+                      "value": {
+                        "stringValue": "day is out of range for month"
+                      }
+                    },
+                    {
+                      "key": "exception.stacktrace",
+                      "value": {
+                        "stringValue": "Traceback (most recent call last):\n  File \"/app/app/main.py\", line 129, in get_order\n    order = fetch_order(order_id)\n            ^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 117, in fetch_order\n    return order_detail(row)\n           ^^^^^^^^^^^^^^^^^\n  File \"/app/app/main.py\", line 69, in order_detail\n    estimated_at = placed_at.replace(day=placed_at.day + 2)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: day is out of range for month\n"
+                      }
+                    },
+                    {
+                      "key": "exception.escaped",
+                      "value": {
+                        "stringValue": "False"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "status": {
+                "message": "ValueError",
+                "code": "STATUS_CODE_ERROR"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

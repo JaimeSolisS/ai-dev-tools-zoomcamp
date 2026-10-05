@@ -1,0 +1,47 @@
+{
+  "receiver": "incident-responder",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "GrafanaWebhookTest",
+        "instance": "Grafana",
+        "test": "true"
+      },
+      "annotations": {
+        "summary": "Grafana webhook test; no incident to fix"
+      },
+      "startsAt": "2026-10-05T03:10:59.265884515Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "",
+      "fingerprint": "23a95b401340440a",
+      "silenceURL": "http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=alertname%3DGrafanaWebhookTest&matcher=instance%3DGrafana&matcher=test%3Dtrue",
+      "dashboardURL": "",
+      "panelURL": "",
+      "values": null,
+      "valueString": "[ metric='foo' labels={instance=bar} value=10 ]"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "GrafanaWebhookTest",
+    "instance": "Grafana",
+    "test": "true"
+  },
+  "commonLabels": {
+    "alertname": "GrafanaWebhookTest",
+    "instance": "Grafana",
+    "test": "true"
+  },
+  "commonAnnotations": {
+    "summary": "Grafana webhook test; no incident to fix"
+  },
+  "externalURL": "http://localhost:3000/",
+  "version": "1",
+  "groupKey": "incident-responder-23a95b401340440a-1791169859",
+  "truncatedAlerts": 0,
+  "orgId": 1,
+  "title": "[FIRING:1] GrafanaWebhookTest Grafana true ",
+  "state": "alerting",
+  "message": "**Firing**\n\nValue: [no value]\nLabels:\n - alertname = GrafanaWebhookTest\n - instance = Grafana\n - test = true\nAnnotations:\n - summary = Grafana webhook test; no incident to fix\nSilence: http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=alertname%3DGrafanaWebhookTest&matcher=instance%3DGrafana&matcher=test%3Dtrue\n"
+}
