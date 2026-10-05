@@ -33,4 +33,22 @@ Run tests with `uv run --frozen pytest -q`. Stop the app with `docker compose do
 | GET | `/api/orders/{id}` | Check an order |
 | PATCH | `/api/orders/{id}` | Change an order status |
 
+## Telemetry
+
+The app emits OpenTelemetry traces, metrics, and logs to the console. Inspect them with:
+
+```bash
+docker compose logs app
+```
+
+| Signal | What to look for |
+| --- | --- |
+| Metric | `http.server.request.duration` (count and latency) with `http.route` and `http.response.status_code` |
+| Trace | An `order lookup` span with `order.id`; crashes are marked as errors with the stack trace |
+| Log | `Order lookup succeeded` / `failed` / `crashed`, with `order.id` and the trace ID |
+
+FastAPI records the HTTP request span, the request metric, and unhandled-exception logs on its own. The order lookup route adds the `order lookup` span and its log lines. Metrics are printed every 10 seconds (`OTEL_METRIC_EXPORT_INTERVAL` in `compose.yaml`). Spans and logs are sent in batches, so they can take a few seconds to show up. Exporter setup is in `app/telemetry.py`.
+
+## Notes
+
 The app uses SQLite to keep setup small. Run one app container at a time. The course exercise is about detecting and handling an incident, not scaling the database.

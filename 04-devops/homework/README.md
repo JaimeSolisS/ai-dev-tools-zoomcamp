@@ -29,6 +29,8 @@ What does the health check return?
 
 For this and the next questions, you can ask your coding assistant to help select the correct option.
 
+**Answer: {"status":"ok"}**
+
 ## Question 2: Instrument one endpoint
 
 Imagine a customer says they cannot open an order. You check the website and everything looks okay. We need a better way to undestand what's happening in the system. For that we use metrics, logs and traces.
@@ -36,7 +38,7 @@ Imagine a customer says they cannot open an order. You check the website and eve
 Ask your agent to add OpenTelemetry metrics, logs, and traces for order lookups. The request metric should include the route and HTTP status code.
 For now, export the signals to the console so you can inspect them with `docker compose logs app`.
 
-After the agent's changes, rebuild the app with `docker compose up --build -d --wait`.
+After the agent's changes, rebuild the app with `dockerose u compp --build -d --wait`.
 
 Then lookup the order `standard-1001`:
 
@@ -52,6 +54,8 @@ Which HTTP status code does the metric record for this lookup?
 - 301
 - 404
 - 500
+
+**Answer: 200**
 
 ## Question 3: Build the telemetry pipeline
 

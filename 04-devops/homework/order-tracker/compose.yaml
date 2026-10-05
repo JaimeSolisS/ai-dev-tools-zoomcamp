@@ -8,6 +8,8 @@ services:
       - "127.0.0.1:${ORDER_TRACKER_PORT:-8000}:8000"
     environment:
       ORDER_DB_PATH: /data/orders.db
+      PYTHONUNBUFFERED: "1"
+      OTEL_METRIC_EXPORT_INTERVAL: "10000"
     volumes:
       - orders:/data
     restart: unless-stopped
