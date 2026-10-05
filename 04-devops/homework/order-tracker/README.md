@@ -56,6 +56,10 @@ Grafana opens on the **Order Tracker** dashboard: request and error counts, requ
 
 FastAPI records the HTTP request span, the request metric, and unhandled-exception logs on its own. The order lookup route adds the `order lookup` span and its log lines. Metrics are exported every 10 seconds (`OTEL_METRIC_EXPORT_INTERVAL`) and Prometheus scrapes the Collector every 10 seconds, so allow about 20 seconds for a request to show up. Without `OTEL_EXPORTER_OTLP_ENDPOINT` (for example, when running the app outside Compose), the app prints telemetry to the console instead.
 
+### Alerting
+
+Grafana evaluates the **Order Tracker 5xx responses** rule every 10 seconds, with one alert instance per endpoint (`http_route`). It fires as soon as an endpoint has returned any 5xx in the last 5 minutes, then goes back to Normal once 5 minutes pass without one. Each alert carries `summary`, `description`, `endpoint`, `time_window`, and `dashboard_url` annotations, and is linked to the dashboard's error panel. If no 5xx has ever been recorded, the query returns 0, so the rule shows Normal instead of No data. Check its state under **Alerting → Alert rules** in Grafana. No contact point is set up yet.
+
 Configuration:
 
 | Path | Contents |
@@ -65,7 +69,7 @@ Configuration:
 | `observability/prometheus/prometheus.yml` | Scrape config for the Collector |
 | `observability/loki/config.yaml` | Loki single-node config with OTLP structured metadata |
 | `observability/tempo/config.yaml` | Tempo single-node config |
-| `observability/grafana/provisioning/` | Data sources and the dashboard provider |
+| `observability/grafana/provisioning/` | Data sources, the dashboard provider, and alert rules (`alerting/`) |
 | `observability/grafana/dashboards/order-tracker.json` | The Order Tracker dashboard |
 
 ## Notes

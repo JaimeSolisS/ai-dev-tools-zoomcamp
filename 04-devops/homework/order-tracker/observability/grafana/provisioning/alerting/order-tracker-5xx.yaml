@@ -1,0 +1,57 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: order-tracker
+    folder: Order Tracker
+    interval: 10s
+    rules:
+      - uid: order-tracker-5xx
+        title: Order Tracker 5xx responses
+        condition: B
+        data:
+          # One series per endpoint with 5xx responses in the last 5 minutes.
+          # When no 5xx has ever been recorded the counter series do not exist,
+          # so `or on() vector(0)` returns 0 and the rule stays Normal instead of No data.
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: >-
+                sum by (http_route) (
+                  increase(http_server_request_duration_seconds_count{job="order-tracker", http_response_status_code=~"5.."}[5m])
+                ) or on() vector(0)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+        # Fire on the first evaluation: any 5xx is a user who could not get their order.
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          service: order-tracker
+          severity: critical
+        annotations:
+          summary: >-
+            {{ if $labels.http_route }}{{ $labels.http_route }}{{ else }}order-tracker{{ end }}
+            returned {{ printf "%.0f" $values.A.Value }} 5xx response(s) in the last 5m
+          description: >-
+            Server errors (HTTP 5xx) on endpoint {{ $labels.http_route }} during the last 5 minutes.
+            Check the dashboard's error traces and logs for the stack trace.
+          endpoint: "{{ $labels.http_route }}"
+          time_window: 5m
+          dashboard_url: "http://localhost:3000/d/order-tracker/order-tracker?from=now-30m&to=now&var-route={{ $labels.http_route | urlquery }}"
+          __dashboardUid__: order-tracker
+          __panelId__: "6"
