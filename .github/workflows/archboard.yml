@@ -1,6 +1,6 @@
 # Archboard (03-deployment/archboard) CI/CD:
 #   backend + frontend tests (parallel) -> docker compose integration + e2e tests
-#   -> on main: deploy to dev, then prod (archboard-deploy.yml: terraform apply, build and
+#   -> on main: deploy to dev, then prod after approval (archboard-deploy.yml: terraform apply, build and
 #      push the image, roll out, check /health)
 name: archboard
 
@@ -115,7 +115,8 @@ jobs:
     with:
       environment: dev
 
-  # Same commit, promoted only once dev is up and healthy on it.
+  # Same commit, promoted once dev is up and healthy on it and a reviewer approves
+  # (required reviewers on the GitHub "prod" environment).
   deploy-prod:
     name: Deploy to prod
     needs: deploy-dev

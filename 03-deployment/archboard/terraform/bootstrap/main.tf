@@ -1,7 +1,7 @@
 # One-time setup, applied locally (`make bootstrap`), so CI can run the main config:
 #   - an S3 bucket for Terraform state (both configs keep their state there)
 #   - GitHub's OIDC identity provider
-#   - the role the GitHub Actions deploy job assumes: main branch of this repo only
+#   - the role the GitHub Actions deploy jobs assume: this repo's dev and prod environments only
 #
 # The CI role can't change itself or this config; changes here are applied by hand.
 
@@ -93,7 +93,9 @@ resource "aws_iam_role" "deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "${var.github_sub_prefix}:ref:refs/heads/main"
+          # Deploy jobs run in a GitHub environment (dev, prod), each limited to the main
+          # branch by its deployment branch policy; prod also needs a reviewer's approval.
+          "token.actions.githubusercontent.com:sub" = [for env in keys(var.environments) : "${var.github_sub_prefix}:environment:${env}"]
         }
       }
     }]

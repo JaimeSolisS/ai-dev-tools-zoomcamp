@@ -115,7 +115,13 @@ and pull request that touches this folder:
    through GitHub OIDC (no stored keys), runs `terraform apply` for that environment, builds and
    pushes the image tagged with the commit, rolls it out over SSM, and waits until
    `GET /health` reports the database is up and the new commit is the one running. Prod is
-   deployed only after dev is healthy on the same commit.
+   deployed only after dev is healthy on the same commit **and** someone approves it: the run
+   pauses at "Deploy to prod" until a reviewer clicks *Review deployments* → *Approve* on the
+   run's page in GitHub Actions.
+
+Each deploy job runs in the GitHub environment of the same name (`dev`, `prod`; repo
+*Settings → Environments*). Both only accept the `main` branch, `prod` has required
+reviewers, and the AWS role trusts only those two environments' OIDC subjects.
 
 The OIDC provider, the deploy role and the state bucket live in
 [`terraform/bootstrap/`](terraform/bootstrap). They are applied once by hand with

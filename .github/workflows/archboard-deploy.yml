@@ -16,7 +16,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  # Created by terraform/bootstrap; only the main branch of this repo can assume it.
+  # Created by terraform/bootstrap; only this repo's dev and prod environments can assume it.
   AWS_DEPLOY_ROLE_ARN: arn:aws:iam::027654771042:role/archboard-github-deploy
   TERRAFORM_VERSION: 1.13.4
   ENV: ${{ inputs.environment }}
@@ -25,6 +25,9 @@ jobs:
   deploy:
     name: Deploy (${{ inputs.environment }})
     runs-on: ubuntu-24.04
+    # GitHub environment of the same name: main only, and prod waits for a reviewer's approval.
+    # It also sets the OIDC subject (...:environment:<env>) that the AWS role trusts.
+    environment: ${{ inputs.environment }}
     concurrency:
       group: archboard-deploy-${{ inputs.environment }}
       cancel-in-progress: false
