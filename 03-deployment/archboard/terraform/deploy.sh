@@ -1,18 +1,22 @@
 #!/bin/bash
 # Provision with Terraform, build and push the app image, roll it out and check /health.
-# The CI pipeline (.github/workflows/archboard.yml) runs the same steps.
-#   terraform/deploy.sh              # provision (terraform apply) + deploy
-#   SKIP_APPLY=1 terraform/deploy.sh # code-only deploy
+# The CI pipeline (.github/workflows/archboard-deploy.yml) runs the same steps.
+#   terraform/deploy.sh                       # provision (terraform apply) + deploy dev
+#   ENV=prod terraform/deploy.sh              # same, for prod
+#   SKIP_APPLY=1 ENV=prod terraform/deploy.sh # code-only deploy
 set -euo pipefail
 
 TF_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$TF_DIR")"
 export AWS_PROFILE="${AWS_PROFILE:-jsolisdev}"
+ENV="${ENV:-dev}"
+[ -f "$TF_DIR/envs/$ENV.tfvars" ] || { echo "Unknown environment '$ENV' (see terraform/envs/)" >&2; exit 1; }
 
 cd "$TF_DIR"
-terraform init -input=false > /dev/null
+"$TF_DIR/init.sh" "$ENV" > /dev/null
 if [ -z "${SKIP_APPLY:-}" ]; then
-  terraform apply -input=false -auto-approve
+  echo "==> terraform apply ($ENV)"
+  terraform apply -input=false -auto-approve -var-file="envs/$ENV.tfvars"
 fi
 
 REPO=$(terraform output -raw ecr_repository_url)

@@ -1,5 +1,6 @@
 # Archboard on a single EC2 instance: the app image (from ECR) and Postgres,
 # run with docker compose. See README.md for the deploy flow.
+# One copy per environment (envs/*.tfvars), each with its own state and resources.
 
 terraform {
   required_version = ">= 1.6"
@@ -16,9 +17,9 @@ terraform {
 
   # Bucket created by bootstrap/. Credentials come from the environment:
   # AWS_PROFILE locally (the Makefile sets it), the OIDC role in CI.
+  # Each environment has its own state key: init with -backend-config=envs/<env>.tfbackend.
   backend "s3" {
     bucket       = "archboard-tfstate-027654771042"
-    key          = "app.tfstate"
     region       = "us-east-1"
     use_lockfile = true
   }
@@ -28,7 +29,7 @@ provider "aws" {
   region = var.region
 
   default_tags {
-    tags = { Project = var.name }
+    tags = { Project = var.project, Environment = var.environment }
   }
 }
 

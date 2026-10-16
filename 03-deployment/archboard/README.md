@@ -15,7 +15,7 @@ The product spec is in [`_docs/spec.md`](_docs/spec.md) and the API contract in
 | [`frontend/`](frontend)  | React 18, TypeScript, Vite, Vitest                    | [frontend/README.md](frontend/README.md) |
 | [`backend/`](backend)    | FastAPI, SQLAlchemy (SQLite or Postgres), WebSockets  | [backend/README.md](backend/README.md)   |
 | [`e2e/`](e2e)            | Playwright, run against docker compose                |                                          |
-| [`terraform/`](terraform)| AWS: one EC2 instance running the app and Postgres     | [below](#deploy-to-aws)                  |
+| [`terraform/`](terraform)| AWS: one EC2 instance per environment (dev, prod) running the app and Postgres | [below](#deploy-to-aws)                  |
 
 In production one container serves both: the backend serves the built frontend at `/`
 and the API at `/v1`. Real-time updates go over a WebSocket from the same server.
@@ -64,20 +64,34 @@ for the demo data and every setting.
 database stored on the instance's disk. The image is built on your machine and pushed to ECR,
 because the instance is too small to build the frontend itself.
 
+There are two independent copies of this infrastructure, defined by the same config:
+
+| Environment | Settings                                  | Resources named  | State key          |
+|-------------|-------------------------------------------|------------------|--------------------|
+| `dev`       | [`envs/dev.tfvars`](terraform/envs/dev.tfvars)   | `archboard*`      | `app.tfstate`      |
+| `prod`      | [`envs/prod.tfvars`](terraform/envs/prod.tfvars) | `archboard-prod*` | `app-prod.tfstate` |
+
+Each has its own instance, database, ECR repository, security group and IAM role; destroying
+or breaking one doesn't touch the other. Pick one with `ENV` (default `dev`):
+
 ```bash
-make deploy                          # terraform apply, build and push the image, restart the app
-make deploy-app                      # code-only redeploy (skips terraform apply)
-make destroy                         # delete all the AWS resources, database included (asks first)
+make deploy ENV=prod                 # terraform apply, build and push the image, restart the app
+make deploy-app ENV=prod             # code-only redeploy (skips terraform apply)
+make destroy ENV=prod                # delete that environment's AWS resources, database included (asks first)
+make tf-init ENV=prod                # point terraform/ at that environment's state, then e.g.:
 terraform -chdir=terraform output    # URL, instance id, ECR repository
 ```
 
 The targets use the `jsolisdev` AWS profile; override it with `make deploy AWS_PROFILE=other`.
 Terraform state is kept in S3 (bucket `archboard-tfstate-<account>`, with locking), so
-local runs and the pipeline share it; plain `terraform` commands need `AWS_PROFILE` set.
+local runs and the pipeline share it; plain `terraform` commands need `AWS_PROFILE` set, the
+environment's `-var-file=envs/<env>.tfvars`, and `make tf-init` first (the directory
+remembers only the last environment it was initialized for).
 
-There is no SSH; open a shell on the instance with Session Manager:
+There is no SSH; open a shell on an instance with Session Manager:
 
 ```bash
+make tf-init ENV=prod
 aws ssm start-session --profile jsolisdev --region us-east-1 \
   --target "$(terraform -chdir=terraform output -raw instance_id)"
 ```
@@ -96,14 +110,18 @@ and pull request that touches this folder:
 1. **Backend** (ruff + pytest) and **frontend** (type check + Vitest) tests, in parallel.
 2. **Integration**: builds the docker compose stack, then runs the compose integration tests,
    the frontend HTTP client tests and the Playwright e2e tests against it.
-3. **Deploy** (pushes to `main` only): assumes an AWS role through GitHub OIDC (no stored
-   keys), runs `terraform apply`, builds and pushes the image tagged with the commit, rolls it
-   out over SSM, and waits until `GET /health` reports the database is up and the new commit
-   is the one running.
+3. **Deploy to dev**, then **prod** (pushes to `main` only), each with
+   [`archboard-deploy.yml`](../../.github/workflows/archboard-deploy.yml): assumes an AWS role
+   through GitHub OIDC (no stored keys), runs `terraform apply` for that environment, builds and
+   pushes the image tagged with the commit, rolls it out over SSM, and waits until
+   `GET /health` reports the database is up and the new commit is the one running. Prod is
+   deployed only after dev is healthy on the same commit.
 
 The OIDC provider, the deploy role and the state bucket live in
 [`terraform/bootstrap/`](terraform/bootstrap). They are applied once by hand with
-`make bootstrap`, so the pipeline's role can't widen its own permissions.
+`make bootstrap`, so the pipeline's role can't widen its own permissions. Adding an environment
+means adding it to `environments` in [`bootstrap/variables.tf`](terraform/bootstrap/variables.tf)
+too, so the role may manage its resources.
 
 `GET /health` returns `{"status", "database", "version"}`, and 503 when the database is unreachable.
 
@@ -113,7 +131,7 @@ The OIDC provider, the deploy role and the state bucket live in
 frontend/      React app (canvas, room, dashboard, services layer)
 backend/       FastAPI app, unit tests, docker compose integration tests
 e2e/           Playwright browser tests
-terraform/     AWS deployment (EC2 + ECR), deploy scripts, bootstrap/ for CI access
+terraform/     AWS deployment (EC2 + ECR), envs/ (dev, prod), deploy scripts, bootstrap/ for CI access
 _docs/         product and technical spec
 openapi.yaml   API contract shared by frontend and backend
 Dockerfile     one image: built frontend served by the backend

@@ -1,5 +1,5 @@
 variable "name" {
-  description = "Name prefix; must match the main config's"
+  description = "Name prefix of the bucket and deploy role; must match the main config's project tag"
   type        = string
   default     = "archboard"
 }
@@ -17,4 +17,13 @@ variable "github_sub_prefix" {
   EOT
   type        = string
   default     = "repo:JaimeSolisS@26722249/ai-dev-tools-zoomcamp@1355245122"
+}
+
+variable "environments" {
+  description = "The main config's environments: env => resource name prefix (must match ../envs/<env>.tfvars)"
+  type        = map(string)
+  default = {
+    dev  = "archboard"
+    prod = "archboard-prod"
+  }
 }

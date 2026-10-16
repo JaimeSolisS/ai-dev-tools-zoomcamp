@@ -36,6 +36,9 @@ data "aws_caller_identity" "current" {}
 locals {
   account = data.aws_caller_identity.current.account_id
   prefix  = "arn:aws:iam::${local.account}"
+  # Name prefixes and state keys of the main config's environments (../envs/).
+  app_names  = values(var.environments)
+  state_keys = [for env, name in var.environments : env == "dev" ? "app.tfstate" : "app-${env}.tfstate"]
 }
 
 # --- State bucket ---
@@ -114,7 +117,7 @@ resource "aws_iam_role_policy" "deploy" {
         Sid      = "StateObjects"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-        Resource = "${aws_s3_bucket.state.arn}/app.tfstate*"
+        Resource = [for key in local.state_keys : "${aws_s3_bucket.state.arn}/${key}*"]
       },
       {
         # Instance, security group, EIP, and reading the default VPC.
@@ -133,7 +136,7 @@ resource "aws_iam_role_policy" "deploy" {
         Sid      = "ECR"
         Effect   = "Allow"
         Action   = ["ecr:*"]
-        Resource = "arn:aws:ecr:${var.region}:${local.account}:repository/${var.name}"
+        Resource = [for n in local.app_names : "arn:aws:ecr:${var.region}:${local.account}:repository/${n}"]
       },
       {
         # Only the instance's role and profile, never this deploy role.
@@ -147,17 +150,17 @@ resource "aws_iam_role_policy" "deploy" {
           "iam:TagInstanceProfile", "iam:UntagInstanceProfile",
           "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
         ]
-        Resource = [
-          "${local.prefix}:role/${var.name}-ec2",
-          "${local.prefix}:instance-profile/${var.name}-ec2",
-        ]
+        Resource = flatten([for n in local.app_names : [
+          "${local.prefix}:role/${n}-ec2",
+          "${local.prefix}:instance-profile/${n}-ec2",
+        ]])
       },
       {
         # ...and only these two managed policies can be attached to it.
         Sid      = "InstanceRolePolicies"
         Effect   = "Allow"
         Action   = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
-        Resource = "${local.prefix}:role/${var.name}-ec2"
+        Resource = [for n in local.app_names : "${local.prefix}:role/${n}-ec2"]
         Condition = {
           ArnEquals = {
             "iam:PolicyARN" = [
@@ -174,7 +177,7 @@ resource "aws_iam_role_policy" "deploy" {
         Resource = "arn:aws:ssm:${var.region}::parameter/aws/service/*"
       },
       {
-        # Rollout: run deploy.sh on instances of this project only.
+        # Rollout: run deploy.sh on instances of this project only (any environment).
         Sid      = "RolloutInstances"
         Effect   = "Allow"
         Action   = ["ssm:SendCommand"]

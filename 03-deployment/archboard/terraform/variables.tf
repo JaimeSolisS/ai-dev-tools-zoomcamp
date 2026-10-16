@@ -1,5 +1,15 @@
 variable "name" {
-  description = "Name prefix for all resources"
+  description = "Name prefix for this environment's resources (set in envs/<env>.tfvars)"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name, e.g. dev or prod (set in envs/<env>.tfvars)"
+  type        = string
+}
+
+variable "project" {
+  description = "Project tag shared by all environments (the CI role may only roll out to instances tagged with it)"
   type        = string
   default     = "archboard"
 }

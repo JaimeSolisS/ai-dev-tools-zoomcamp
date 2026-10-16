@@ -8,7 +8,7 @@ FRONTEND_PORT ?= 5173
 .DEFAULT_GOAL := help
 .PHONY: help install install-frontend install-backend run dev frontend backend \
         test test-frontend test-backend test-backend-postgres test-integration test-compose e2e lint build clean reset-db \
-        deploy deploy-app destroy bootstrap
+        deploy deploy-app destroy tf-init bootstrap
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -82,17 +82,23 @@ clean: ## Remove build output and caches
 
 AWS_PROFILE ?= jsolisdev
 export AWS_PROFILE
+# Environment for deploy, deploy-app, destroy, tf-init: dev or prod (terraform/envs/)
+ENV ?= dev
+export ENV
 
-deploy: ## Deploy to AWS: terraform apply, build and push the image, restart the app (needs Docker)
+deploy: ## Deploy to AWS (ENV=dev|prod): terraform apply, build and push the image, restart the app (needs Docker)
 	terraform/deploy.sh
 
-deploy-app: ## Redeploy only the app code to AWS (skips terraform apply)
+deploy-app: ## Redeploy only the app code to AWS (ENV=dev|prod; skips terraform apply)
 	SKIP_APPLY=1 terraform/deploy.sh
 
 bootstrap: ## One-time AWS setup for CI: Terraform state bucket, GitHub OIDC provider, deploy role
 	terraform -chdir=terraform/bootstrap init -input=false > /dev/null
 	terraform -chdir=terraform/bootstrap apply
 
-destroy: ## Delete all the AWS resources (asks for confirmation; the database is lost)
-	terraform -chdir=terraform init -input=false > /dev/null
-	terraform -chdir=terraform destroy
+destroy: ## Delete one environment's AWS resources (ENV=dev|prod; asks first; its database is lost)
+	terraform/init.sh $(ENV) > /dev/null
+	terraform -chdir=terraform destroy -var-file=envs/$(ENV).tfvars
+
+tf-init: ## Point terraform/ at one environment's state (ENV=dev|prod), for plain terraform commands
+	terraform/init.sh $(ENV)

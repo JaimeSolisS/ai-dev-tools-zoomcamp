@@ -18,3 +18,7 @@ output "ecr_repository_url" {
 output "region" {
   value = var.region
 }
+
+output "environment" {
+  value = var.environment
+}

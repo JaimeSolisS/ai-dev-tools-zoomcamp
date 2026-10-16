@@ -1,6 +1,7 @@
 # Archboard (03-deployment/archboard) CI/CD:
 #   backend + frontend tests (parallel) -> docker compose integration + e2e tests
-#   -> on main: terraform apply, build and push the image, roll out, check /health
+#   -> on main: deploy to dev, then prod (archboard-deploy.yml: terraform apply, build and
+#      push the image, roll out, check /health)
 name: archboard
 
 on:
@@ -10,11 +11,13 @@ on:
       - "03-deployment/archboard/**"
       - "!03-deployment/archboard/**/*.md"
       - ".github/workflows/archboard.yml"
+      - ".github/workflows/archboard-deploy.yml"
   pull_request:
     paths:
       - "03-deployment/archboard/**"
       - "!03-deployment/archboard/**/*.md"
       - ".github/workflows/archboard.yml"
+      - ".github/workflows/archboard-deploy.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,12 +26,6 @@ permissions:
 defaults:
   run:
     working-directory: 03-deployment/archboard
-
-env:
-  AWS_REGION: us-east-1
-  # Created by terraform/bootstrap; only the main branch of this repo can assume it.
-  AWS_DEPLOY_ROLE_ARN: arn:aws:iam::027654771042:role/archboard-github-deploy
-  TERRAFORM_VERSION: 1.13.4
 
 jobs:
   backend:
@@ -107,61 +104,24 @@ jobs:
           path: 03-deployment/archboard/e2e/playwright-report
           retention-days: 7
 
-  deploy:
-    name: Deploy to AWS
+  deploy-dev:
+    name: Deploy to dev
     needs: integration
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write # GitHub OIDC token -> AWS role
-    concurrency:
-      group: archboard-deploy
-      cancel-in-progress: false
-    defaults:
-      run:
-        working-directory: 03-deployment/archboard/terraform
-    steps:
-      - uses: actions/checkout@v7
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-      - uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false # plain stdout, so `terraform output -raw` works
+    uses: ./.github/workflows/archboard-deploy.yml
+    with:
+      environment: dev
 
-      - name: Terraform init
-        run: terraform init -input=false
-      - name: Terraform apply
-        run: terraform apply -input=false -auto-approve
-      - name: Read outputs
-        id: tf
-        run: |
-          {
-            echo "repo=$(terraform output -raw ecr_repository_url)"
-            echo "instance=$(terraform output -raw instance_id)"
-            echo "url=$(terraform output -raw url)"
-            echo "version=${GITHUB_SHA::7}"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Build and push the image
-        working-directory: 03-deployment/archboard
-        env:
-          REPO: ${{ steps.tf.outputs.repo }}
-          VERSION: ${{ steps.tf.outputs.version }}
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${REPO%%/*}"
-          docker build --build-arg APP_VERSION="$VERSION" -t "$REPO:$VERSION" -t "$REPO:latest" .
-          docker push "$REPO:$VERSION"
-          docker push "$REPO:latest"
-
-      - name: Roll out to the instance
-        run: ./rollout.sh "$AWS_REGION" "${{ steps.tf.outputs.instance }}"
-
-      - name: Health check
-        run: ./healthcheck.sh "${{ steps.tf.outputs.url }}" "${{ steps.tf.outputs.version }}"
-
-      - name: Summary
-        run: echo "Deployed ${{ steps.tf.outputs.version }} to ${{ steps.tf.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+  # Same commit, promoted only once dev is up and healthy on it.
+  deploy-prod:
+    name: Deploy to prod
+    needs: deploy-dev
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/archboard-deploy.yml
+    with:
+      environment: prod
